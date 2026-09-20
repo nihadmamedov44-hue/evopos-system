@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="az">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>EVOPOS - Çek #{{ order["id"] }}</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 30px;
+            background: #f4f6f8;
+            font-family: Arial, sans-serif;
+            color: #222;
+        }
+
+        .receipt {
+            width: 100%;
+            max-width: 420px;
+            margin: auto;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        .restaurant-name {
+            text-align: center;
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .receipt-title {
+            text-align: center;
+            color: #777;
+            margin-bottom: 20px;
+        }
+
+        .line {
+            border-top: 1px dashed #999;
+            margin: 15px 0;
+        }
+
+        .info {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+        }
+
+        .items {
+            margin-top: 15px;
+        }
+
+        .item {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 8px 0;
+        }
+
+        .item-left {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .item-name {
+            font-weight: bold;
+        }
+
+        .item-details {
+            color: #777;
+            font-size: 13px;
+            margin-top: 3px;
+        }
+
+        .item-price {
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .total {
+            display: flex;
+            justify-content: space-between;
+            font-size: 21px;
+            font-weight: bold;
+            margin-top: 15px;
+        }
+
+        .payment-box {
+            background: #f4f6f8;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .payment-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+        }
+
+        .footer {
+            text-align: center;
+            color: #777;
+            margin-top: 25px;
+            font-size: 13px;
+        }
+
+        .buttons {
+            max-width: 420px;
+            margin: 20px auto 0;
+            display: flex;
+            gap: 10px;
+        }
+
+        .buttons button {
+            flex: 1;
+            border: none;
+            padding: 13px;
+            border-radius: 8px;
+            cursor: pointer;
+            color: white;
+            font-size: 15px;
+            font-weight: bold;
+        }
+
+        .print-button {
+            background: #1f2937;
+        }
+
+        .home-button {
+            background: #16a34a;
+        }
+
+        @media print {
+
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .receipt {
+                box-shadow: none;
+                max-width: 100%;
+                border-radius: 0;
+            }
+
+            .buttons {
+                display: none;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<div class="receipt">
+
+    <div class="restaurant-name">
+        EVOPOS
+    </div>
+
+    <div class="receipt-title">
+        SİFARİŞ ÇEKİ
+    </div>
+
+
+    <div class="line"></div>
+
+
+    <div class="info">
+
+        <span>
+            Sifariş:
+        </span>
+
+        <strong>
+            #{{ order["id"] }}
+        </strong>
+
+    </div>
+
+
+    <div class="info">
+
+        <span>
+            Masa:
+        </span>
+
+        <strong>
+            {{ order["table_number"] }}
+        </strong>
+
+    </div>
+
+
+    <div class="info">
+
+        <span>
+            Tarix:
+        </span>
+
+        <span>
+            {{ order["created_at"] }}
+        </span>
+
+    </div>
+
+
+    <div class="line"></div>
+
+
+    <div class="items">
+
+        {% for item in items %}
+
+        <div class="item">
+
+            <div class="item-left">
+
+                <div class="item-name">
+                    {{ item["product_name"] }}
+                </div>
+
+                <div class="item-details">
+                    {{ item["quantity"] }} ×
+                    {{ "%.2f"|format(item["price"]) }} ₼
+                </div>
+
+            </div>
+
+
+            <div class="item-price">
+
+                {{
+                    "%.2f"|format(
+                        item["price"] * item["quantity"]
+                    )
+                }} ₼
+
+            </div>
+
+        </div>
+
+        {% endfor %}
+
+    </div>
+
+
+    <div class="line"></div>
+
+
+    <div class="total">
+
+        <span>
+            Cəmi
+        </span>
+
+        <span>
+            {{ "%.2f"|format(order["total"]) }} ₼
+        </span>
+
+    </div>
+
+
+    {% if order["payment_method"] %}
+
+    <div class="payment-box">
+
+        <div class="payment-row">
+
+            <span>
+                Ödəniş növü
+            </span>
+
+            <strong>
+                {{ order["payment_method"] }}
+            </strong>
+
+        </div>
+
+
+        <div class="payment-row">
+
+            <span>
+                Verilən məbləğ
+            </span>
+
+            <strong>
+                {{ "%.2f"|format(order["paid_amount"]) }} ₼
+            </strong>
+
+        </div>
+
+
+        {% if order["payment_method"] == "Nağd" %}
+
+        <div class="payment-row">
+
+            <span>
+                Qalıq
+            </span>
+
+            <strong>
+                {{ "%.2f"|format(order["change_amount"]) }} ₼
+            </strong>
+
+        </div>
+
+        {% endif %}
+
+
+        <div class="payment-row">
+
+            <span>
+                Ödəniş vaxtı
+            </span>
+
+            <span>
+                {{ order["paid_at"] }}
+            </span>
+
+        </div>
+
+    </div>
+
+    {% endif %}
+
+
+    <div class="footer">
+
+        Təşəkkür edirik!<br>
+        Yenidən gözləyirik.
+
+    </div>
+
+</div>
+
+
+<div class="buttons">
+
+    <button
+        class="print-button"
+        onclick="window.print()">
+
+        🖨️ Çap et
+
+    </button>
+
+
+    <button
+        class="home-button"
+        onclick="window.location.href='/'">
+
+        🏠 Əsas səhifə
+
+    </button>
+
+</div>
+
+
+</body>
+
+</html>

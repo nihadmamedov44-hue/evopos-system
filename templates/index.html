@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="az">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>EVOPOS - Əsas səhifə</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <style>
+        .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 25px;
+        }
+
+        .page-header h1 {
+            margin: 0;
+        }
+
+        .tables-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+
+        .table-card {
+            background: white;
+            border-radius: 14px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .table-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .table-light {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            margin: 0 auto 12px;
+            border: 3px solid #111;
+        }
+
+        .table-light.empty {
+            background: #00c853;
+        }
+
+        .table-light.busy {
+            background: #ff1010;
+        }
+
+        .table-number {
+            font-size: 23px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .table-status {
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .table-status.empty {
+            color: #00c853;
+        }
+
+        .table-status.busy {
+            color: #ff3030;
+        }
+
+        .table-info {
+            margin-top: 8px;
+            color: #777;
+            font-size: 14px;
+            min-height: 40px;
+        }
+
+        @media (max-width: 1000px) {
+            .tables-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 700px) {
+            .tables-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 450px) {
+            .tables-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+{% include 'sidebar.html' %}
+
+<main class="main-content">
+
+    <div class="page-header">
+        <h1>🏠 Əsas səhifə</h1>
+    </div>
+
+    <div id="tablesGrid" class="tables-grid">
+        <div style="padding:30px;">Masalar yüklənir...</div>
+    </div>
+
+</main>
+
+<script>
+
+async function loadTables() {
+
+    try {
+
+        const response = await fetch("/api/tables");
+
+        if (!response.ok) {
+            throw new Error("Masalar yüklənmədi.");
+        }
+
+        const tables = await response.json();
+
+        const grid = document.getElementById("tablesGrid");
+
+        grid.innerHTML = "";
+
+        tables.forEach(table => {
+
+            const isBusy = table.status === "Məşğuldur";
+
+            const card = document.createElement("div");
+
+            card.className = "table-card";
+
+            card.onclick = function () {
+                window.location.href = `/order/${table.table_number}`;
+            };
+
+            let info = "";
+
+            if (isBusy) {
+
+                const total = Number(table.total || 0);
+
+                if (table.order_id) {
+
+                    info = `
+                        <div>
+                            ${total.toFixed(2)} ₼
+                        </div>
+
+                        <div>
+                            Sifariş #${table.order_id}
+                        </div>
+                    `;
+
+                } else {
+
+                    info = `
+                        <div>
+                            Aktiv sifariş
+                        </div>
+                    `;
+                }
+
+            } else {
+
+                info = `
+                    <div>
+                        Sifariş yoxdur
+                    </div>
+                `;
+            }
+
+            card.innerHTML = `
+
+                <div class="table-light ${isBusy ? "busy" : "empty"}"></div>
+
+                <div class="table-number">
+                    Masa ${table.table_number}
+                </div>
+
+                <div class="table-status ${isBusy ? "busy" : "empty"}">
+                    ${table.status}
+                </div>
+
+                <div class="table-info">
+                    ${info}
+                </div>
+            `;
+
+            grid.appendChild(card);
+        });
+
+    } catch (error) {
+
+        console.error(error);
+
+        document.getElementById("tablesGrid").innerHTML = `
+            <div style="
+                background:white;
+                padding:25px;
+                border-radius:12px;
+                color:red;
+            ">
+                Masaları yükləmək mümkün olmadı.
+            </div>
+        `;
+    }
+}
+
+loadTables();
+
+setInterval(loadTables, 3000);
+
+</script>
+
+</body>
+</html>

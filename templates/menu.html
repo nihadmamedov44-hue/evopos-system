@@ -1,0 +1,1363 @@
+<!DOCTYPE html>
+<html lang="az">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>EVOPOS - Menyu</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+
+    <style>
+
+        .menu-page {
+            padding: 30px;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .menu-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .menu-header h1 {
+            margin: 0;
+            font-size: 28px;
+            color: #1f2933;
+        }
+
+        .add-product-button {
+            background: #2ecc71;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: bold;
+        }
+
+        .add-product-button:hover {
+            background: #27ae60;
+        }
+
+        .category-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        .category-button {
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            background: #eeeeee;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .category-button:hover {
+            background: #dddddd;
+        }
+
+        .category-button.active {
+            background: #3498db;
+            color: white;
+        }
+
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(
+                auto-fill,
+                minmax(220px, 1fr)
+            );
+            gap: 20px;
+        }
+
+        .product-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.08);
+            text-align: center;
+            transition: .2s;
+        }
+
+        .product-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(0,0,0,0.10);
+        }
+
+        .product-icon {
+            font-size: 50px;
+            height: 65px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .product-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #1f2933;
+        }
+
+        .product-category {
+            color: #777;
+            font-size: 13px;
+            margin-bottom: 10px;
+        }
+
+        .product-price {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #1f2933;
+        }
+
+        .product-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .edit-product-button,
+        .delete-product-button {
+            border: none;
+            padding: 8px 12px;
+            border-radius: 7px;
+            cursor: pointer;
+            font-size: 13px;
+            color: white;
+        }
+
+        .edit-product-button {
+            background: #f1c40f;
+        }
+
+        .edit-product-button:hover {
+            background: #d4ac0d;
+        }
+
+        .delete-product-button {
+            background: #e74c3c;
+        }
+
+        .delete-product-button:hover {
+            background: #c0392b;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .modal-content {
+            background: white;
+            width: 90%;
+            max-width: 450px;
+            max-height: 90vh;
+            overflow-y: auto;
+            border-radius: 12px;
+            padding: 25px;
+            box-sizing: border-box;
+        }
+
+        .modal-content h2 {
+            margin-top: 0;
+            color: #1f2933;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: bold;
+            color: #323f4b;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 7px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .save-button,
+        .cancel-button {
+            flex: 1;
+            border: none;
+            padding: 11px;
+            border-radius: 7px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .save-button {
+            background: #2ecc71;
+            color: white;
+        }
+
+        .save-button:hover {
+            background: #27ae60;
+        }
+
+        .cancel-button {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .cancel-button:hover {
+            background: #7f8c8d;
+        }
+
+        .empty-message {
+            text-align: center;
+            padding: 40px;
+            color: #777;
+            background: white;
+            border-radius: 12px;
+        }
+
+        .error-message {
+            text-align: center;
+            padding: 40px;
+            color: #c0392b;
+            background: white;
+            border-radius: 12px;
+        }
+
+        @media (max-width: 700px) {
+
+            .menu-page {
+                padding: 15px;
+            }
+
+            .products-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .product-actions {
+                flex-direction: column;
+            }
+
+            .edit-product-button,
+            .delete-product-button {
+                width: 100%;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+<div class="app-container">
+
+    {% include 'sidebar.html' %}
+
+    <main class="main-content">
+
+        <div class="menu-page">
+
+            <div class="menu-header">
+
+                <h1>
+                    🍽️ Menyu
+                </h1>
+
+                <button
+                    class="add-product-button"
+                    onclick="openAddProduct()">
+
+                    ➕ Məhsul əlavə et
+
+                </button>
+
+            </div>
+
+
+            <!-- KATEQORİYALAR -->
+
+            <div class="category-buttons">
+
+                <button
+                    class="category-button active"
+                    onclick="filterMenu('Hamısı', this)">
+
+                    Hamısı
+
+                </button>
+
+
+                <button
+                    class="category-button"
+                    onclick="filterMenu('Yeməklər', this)">
+
+                    🍔 Yeməklər
+
+                </button>
+
+
+                <button
+                    class="category-button"
+                    onclick="filterMenu('İçkilər', this)">
+
+                    🥤 İçkilər
+
+                </button>
+
+
+                <button
+                    class="category-button"
+                    onclick="filterMenu('Desertlər', this)">
+
+                    🍰 Desertlər
+
+                </button>
+
+            </div>
+
+
+            <!-- MƏHSULLAR -->
+
+            <div
+                id="productsGrid"
+                class="products-grid">
+
+                <div class="empty-message">
+                    Menyu yüklənir...
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+</div>
+
+
+<!-- =====================================================
+     YENİ MƏHSUL MODALI
+===================================================== -->
+
+<div
+    id="addProductModal"
+    class="modal">
+
+    <div class="modal-content">
+
+        <h2>
+            ➕ Yeni məhsul
+        </h2>
+
+
+        <div class="form-group">
+
+            <label>
+                Məhsul adı
+            </label>
+
+            <input
+                type="text"
+                id="productName"
+                placeholder="Məsələn: Şaurma">
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label>
+                Qiymət
+            </label>
+
+            <input
+                type="number"
+                id="productPrice"
+                step="0.01"
+                min="0"
+                placeholder="0.00">
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label>
+                Kateqoriya
+            </label>
+
+            <select id="productCategory">
+
+                <option value="">
+                    Kateqoriya seç
+                </option>
+
+                <option value="Yeməklər">
+                    🍔 Yeməklər
+                </option>
+
+                <option value="İçkilər">
+                    🥤 İçkilər
+                </option>
+
+                <option value="Desertlər">
+                    🍰 Desertlər
+                </option>
+
+            </select>
+
+        </div>
+
+
+        <div class="modal-buttons">
+
+            <button
+                class="cancel-button"
+                onclick="closeAddProduct()">
+
+                Ləğv et
+
+            </button>
+
+
+            <button
+                class="save-button"
+                onclick="addProduct()">
+
+                Yadda saxla
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     REDAKTƏ MODALI
+===================================================== -->
+
+<div
+    id="editProductModal"
+    class="modal">
+
+    <div class="modal-content">
+
+        <h2>
+            ✏️ Məhsulu redaktə et
+        </h2>
+
+
+        <input
+            type="hidden"
+            id="editProductId">
+
+
+        <div class="form-group">
+
+            <label>
+                Məhsul adı
+            </label>
+
+            <input
+                type="text"
+                id="editProductName">
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label>
+                Qiymət
+            </label>
+
+            <input
+                type="number"
+                id="editProductPrice"
+                step="0.01"
+                min="0">
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label>
+                Kateqoriya
+            </label>
+
+            <select id="editProductCategory">
+
+                <option value="Yeməklər">
+                    🍔 Yeməklər
+                </option>
+
+                <option value="İçkilər">
+                    🥤 İçkilər
+                </option>
+
+                <option value="Desertlər">
+                    🍰 Desertlər
+                </option>
+
+            </select>
+
+        </div>
+
+
+        <div class="modal-buttons">
+
+            <button
+                class="cancel-button"
+                onclick="closeEditProduct()">
+
+                Ləğv et
+
+            </button>
+
+
+            <button
+                class="save-button"
+                onclick="updateProduct()">
+
+                Yadda saxla
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+   MƏHSULLAR
+===================================================== */
+
+let allProducts = [];
+
+
+/* =====================================================
+   KATEQORİYA İKONU
+===================================================== */
+
+function getCategoryIcon(category) {
+
+    if (category === "Yeməklər") {
+        return "🍽️";
+    }
+
+    if (category === "İçkilər") {
+        return "🥤";
+    }
+
+    if (category === "Desertlər") {
+        return "🍰";
+    }
+
+    return "🍽️";
+}
+
+
+/* =====================================================
+   MENYU YÜKLƏ
+===================================================== */
+
+async function loadMenu() {
+
+    const grid =
+        document.getElementById("productsGrid");
+
+    try {
+
+        grid.innerHTML = `
+            <div class="empty-message">
+                Menyu yüklənir...
+            </div>
+        `;
+
+
+        const response =
+            await fetch("/api/menu");
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "Menyu məlumatlarını almaq mümkün olmadı."
+            );
+
+        }
+
+
+        const data =
+            await response.json();
+
+
+        if (!Array.isArray(data)) {
+
+            throw new Error(
+                "Serverdən düzgün menyu məlumatı gəlmədi."
+            );
+
+        }
+
+
+        allProducts = data;
+
+
+        displayProducts(allProducts);
+
+
+    } catch (error) {
+
+        console.error(
+            "Menyu yükləmə xətası:",
+            error
+        );
+
+
+        grid.innerHTML = `
+
+            <div class="error-message">
+
+                <h3>
+                    Menyu yüklənmədi
+                </h3>
+
+                <p>
+                    ${escapeHtml(error.message)}
+                </p>
+
+                <button
+                    class="add-product-button"
+                    onclick="loadMenu()">
+
+                    🔄 Yenidən cəhd et
+
+                </button>
+
+            </div>
+
+        `;
+
+    }
+
+}
+
+
+/* =====================================================
+   MƏHSULLARI GÖSTƏR
+===================================================== */
+
+function displayProducts(products) {
+
+    const grid =
+        document.getElementById("productsGrid");
+
+
+    if (!Array.isArray(products) || products.length === 0) {
+
+        grid.innerHTML = `
+
+            <div class="empty-message">
+
+                <h3>
+                    📭 Məhsul yoxdur
+                </h3>
+
+                <p>
+                    Menyuya yeni məhsul əlavə edə bilərsiniz.
+                </p>
+
+            </div>
+
+        `;
+
+        return;
+    }
+
+
+    grid.innerHTML = products.map(product => {
+
+        const icon =
+            getCategoryIcon(product.category);
+
+
+        const price =
+            Number(product.price || 0);
+
+
+        return `
+
+            <div class="product-card">
+
+
+                <div class="product-icon">
+
+                    ${icon}
+
+                </div>
+
+
+                <div class="product-name">
+
+                    ${escapeHtml(
+                        product.name || "Adsız məhsul"
+                    )}
+
+                </div>
+
+
+                <div class="product-category">
+
+                    ${escapeHtml(
+                        product.category || "Digər"
+                    )}
+
+                </div>
+
+
+                <div class="product-price">
+
+                    ${price.toFixed(2)} ₼
+
+                </div>
+
+
+                <div class="product-actions">
+
+
+                    <button
+                        class="edit-product-button"
+                        onclick="openEditProduct(${product.id})">
+
+                        ✏️ Redaktə
+
+                    </button>
+
+
+                    <button
+                        class="delete-product-button"
+                        onclick="deleteProduct(${product.id})">
+
+                        🗑️ Sil
+
+                    </button>
+
+
+                </div>
+
+
+            </div>
+
+        `;
+
+    }).join("");
+
+}
+
+
+/* =====================================================
+   KATEQORİYA FİLTRİ
+===================================================== */
+
+function filterMenu(category, button) {
+
+    document
+        .querySelectorAll(".category-button")
+        .forEach(btn => {
+
+            btn.classList.remove("active");
+
+        });
+
+
+    button.classList.add("active");
+
+
+    if (category === "Hamısı") {
+
+        displayProducts(allProducts);
+
+        return;
+
+    }
+
+
+    const filteredProducts =
+        allProducts.filter(product => {
+
+            return product.category === category;
+
+        });
+
+
+    displayProducts(filteredProducts);
+
+}
+
+
+/* =====================================================
+   ƏLAVƏ ET MODALI
+===================================================== */
+
+function openAddProduct() {
+
+    document
+        .getElementById("productName")
+        .value = "";
+
+    document
+        .getElementById("productPrice")
+        .value = "";
+
+    document
+        .getElementById("productCategory")
+        .value = "";
+
+
+    document
+        .getElementById("addProductModal")
+        .style.display = "flex";
+
+}
+
+
+function closeAddProduct() {
+
+    document
+        .getElementById("addProductModal")
+        .style.display = "none";
+
+}
+
+
+/* =====================================================
+   MƏHSUL ƏLAVƏ ET
+===================================================== */
+
+async function addProduct() {
+
+    const name =
+        document
+            .getElementById("productName")
+            .value
+            .trim();
+
+
+    const price =
+        document
+            .getElementById("productPrice")
+            .value;
+
+
+    const category =
+        document
+            .getElementById("productCategory")
+            .value;
+
+
+    if (!name) {
+
+        alert(
+            "Məhsul adını daxil edin."
+        );
+
+        return;
+
+    }
+
+
+    if (!price || Number(price) <= 0) {
+
+        alert(
+            "Düzgün qiymət daxil edin."
+        );
+
+        return;
+
+    }
+
+
+    if (!category) {
+
+        alert(
+            "Kateqoriya seçin."
+        );
+
+        return;
+
+    }
+
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/menu",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+
+                    body: JSON.stringify({
+
+                        name: name,
+
+                        price: Number(price),
+
+                        category: category
+
+                    })
+                }
+            );
+
+
+        const result =
+            await response.json();
+
+
+        if (!response.ok || !result.success) {
+
+            throw new Error(
+                result.message ||
+                "Məhsul əlavə edilmədi."
+            );
+
+        }
+
+
+        closeAddProduct();
+
+        await loadMenu();
+
+
+        alert(
+            "Məhsul uğurla əlavə edildi."
+        );
+
+
+    } catch (error) {
+
+        console.error(error);
+
+        alert(
+            error.message ||
+            "Məhsul əlavə edilərkən xəta baş verdi."
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   REDAKTƏ MODALI
+===================================================== */
+
+function openEditProduct(id) {
+
+    const product =
+        allProducts.find(
+            p => Number(p.id) === Number(id)
+        );
+
+
+    if (!product) {
+
+        alert(
+            "Məhsul tapılmadı."
+        );
+
+        return;
+
+    }
+
+
+    document
+        .getElementById("editProductId")
+        .value = product.id;
+
+
+    document
+        .getElementById("editProductName")
+        .value = product.name || "";
+
+
+    document
+        .getElementById("editProductPrice")
+        .value = product.price || "";
+
+
+    document
+        .getElementById("editProductCategory")
+        .value = product.category || "Yeməklər";
+
+
+    document
+        .getElementById("editProductModal")
+        .style.display = "flex";
+
+}
+
+
+function closeEditProduct() {
+
+    document
+        .getElementById("editProductModal")
+        .style.display = "none";
+
+}
+
+
+/* =====================================================
+   MƏHSULU YENİLƏ
+===================================================== */
+
+async function updateProduct() {
+
+    const id =
+        document
+            .getElementById("editProductId")
+            .value;
+
+
+    const name =
+        document
+            .getElementById("editProductName")
+            .value
+            .trim();
+
+
+    const price =
+        document
+            .getElementById("editProductPrice")
+            .value;
+
+
+    const category =
+        document
+            .getElementById("editProductCategory")
+            .value;
+
+
+    if (!name) {
+
+        alert(
+            "Məhsul adını daxil edin."
+        );
+
+        return;
+
+    }
+
+
+    if (!price || Number(price) <= 0) {
+
+        alert(
+            "Düzgün qiymət daxil edin."
+        );
+
+        return;
+
+    }
+
+
+    if (!category) {
+
+        alert(
+            "Kateqoriya seçin."
+        );
+
+        return;
+
+    }
+
+
+    try {
+
+        const response =
+            await fetch(
+                `/api/menu/${id}`,
+                {
+                    method: "PUT",
+
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+
+                    body: JSON.stringify({
+
+                        name: name,
+
+                        price: Number(price),
+
+                        category: category
+
+                    })
+                }
+            );
+
+
+        const result =
+            await response.json();
+
+
+        if (!response.ok || !result.success) {
+
+            throw new Error(
+                result.message ||
+                "Məhsul yenilənmədi."
+            );
+
+        }
+
+
+        closeEditProduct();
+
+        await loadMenu();
+
+
+        alert(
+            "Məhsul uğurla yeniləndi."
+        );
+
+
+    } catch (error) {
+
+        console.error(error);
+
+        alert(
+            error.message ||
+            "Məhsul yenilənərkən xəta baş verdi."
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   MƏHSULU SİL
+===================================================== */
+
+async function deleteProduct(id) {
+
+    const product =
+        allProducts.find(
+            p => Number(p.id) === Number(id)
+        );
+
+
+    if (!product) {
+
+        alert(
+            "Məhsul tapılmadı."
+        );
+
+        return;
+
+    }
+
+
+    const confirmed =
+        confirm(
+            `"${product.name}" məhsulunu silmək istəyirsiniz?`
+        );
+
+
+    if (!confirmed) {
+
+        return;
+
+    }
+
+
+    try {
+
+        const response =
+            await fetch(
+                `/api/menu/${id}`,
+                {
+                    method: "DELETE"
+                }
+            );
+
+
+        const result =
+            await response.json();
+
+
+        if (!response.ok || !result.success) {
+
+            throw new Error(
+                result.message ||
+                "Məhsul silinmədi."
+            );
+
+        }
+
+
+        await loadMenu();
+
+
+        alert(
+            "Məhsul uğurla silindi."
+        );
+
+
+    } catch (error) {
+
+        console.error(error);
+
+        alert(
+            error.message ||
+            "Məhsul silinərkən xəta baş verdi."
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   MODALI ÇÖLƏ BASANDA BAĞLA
+===================================================== */
+
+document.addEventListener(
+    "click",
+    function(event) {
+
+        const addModal =
+            document.getElementById(
+                "addProductModal"
+            );
+
+
+        const editModal =
+            document.getElementById(
+                "editProductModal"
+            );
+
+
+        if (event.target === addModal) {
+
+            closeAddProduct();
+
+        }
+
+
+        if (event.target === editModal) {
+
+            closeEditProduct();
+
+        }
+
+    }
+);
+
+
+/* =====================================================
+   ESC İLƏ MODALLARI BAĞLA
+===================================================== */
+
+document.addEventListener(
+    "keydown",
+    function(event) {
+
+        if (event.key === "Escape") {
+
+            closeAddProduct();
+
+            closeEditProduct();
+
+        }
+
+    }
+);
+
+
+/* =====================================================
+   HTML TƏHLÜKƏSİZLİYİ
+===================================================== */
+
+function escapeHtml(value) {
+
+    const div =
+        document.createElement("div");
+
+    div.textContent =
+        value ?? "";
+
+    return div.innerHTML;
+
+}
+
+
+/* =====================================================
+   BAŞLANĞIC
+===================================================== */
+
+loadMenu();
+
+</script>
+
+</body>
+
+</html>

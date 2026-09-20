@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="az">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>EVOPOS - Hesabat</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+
+    <style>
+
+        .reports-page {
+            min-height: 100vh;
+            padding: 30px;
+            background: #f4f6f8;
+            box-sizing: border-box;
+        }
+
+        /* HEADER */
+
+        .reports-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        .reports-title h1 {
+            margin: 0;
+            font-size: 29px;
+            color: #1f2933;
+        }
+
+        .reports-title p {
+            margin: 7px 0 0;
+            color: #7b8794;
+            font-size: 14px;
+        }
+
+        .refresh-button {
+            border: none;
+            background: #1b2a38;
+            color: white;
+            padding: 11px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .refresh-button:hover {
+            background: #263b4d;
+        }
+
+        /* MAIN SALES CARDS */
+
+        .sales-grid {
+            display: grid;
+            grid-template-columns:
+                repeat(4, minmax(0, 1fr));
+            gap: 18px;
+            margin-bottom: 20px;
+        }
+
+        .sales-card {
+            background: white;
+            border-radius: 13px;
+            padding: 20px;
+            box-shadow:
+                0 2px 10px rgba(0,0,0,.05);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .sales-card-icon {
+            width: 45px;
+            height: 45px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 23px;
+            background: #eef3f7;
+            margin-bottom: 15px;
+        }
+
+        .sales-card-label {
+            color: #7b8794;
+            font-size: 13px;
+            margin-bottom: 7px;
+        }
+
+        .sales-card-value {
+            color: #1f2933;
+            font-size: 25px;
+            font-weight: bold;
+        }
+
+        .sales-card-description {
+            color: #9aa5af;
+            font-size: 12px;
+            margin-top: 7px;
+        }
+
+        /* PAYMENT */
+
+        .payment-grid {
+            display: grid;
+            grid-template-columns:
+                repeat(2, minmax(0, 1fr));
+            gap: 18px;
+            margin-bottom: 20px;
+        }
+
+        .payment-card {
+            background: white;
+            border-radius: 13px;
+            padding: 22px;
+            box-shadow:
+                0 2px 10px rgba(0,0,0,.05);
+        }
+
+        .payment-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+        }
+
+        .payment-card-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1f2933;
+        }
+
+        .payment-card-icon {
+            font-size: 27px;
+        }
+
+        .payment-amount {
+            font-size: 28px;
+            font-weight: bold;
+            color: #1f2933;
+        }
+
+        .payment-subtitle {
+            margin-top: 7px;
+            color: #7b8794;
+            font-size: 13px;
+        }
+
+        /* ORDER STATISTICS */
+
+        .order-stat-grid {
+            display: grid;
+            grid-template-columns:
+                repeat(3, minmax(0, 1fr));
+            gap: 18px;
+            margin-bottom: 20px;
+        }
+
+        .order-stat-card {
+            background: white;
+            border-radius: 13px;
+            padding: 20px;
+            box-shadow:
+                0 2px 10px rgba(0,0,0,.05);
+        }
+
+        .order-stat-title {
+            color: #7b8794;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        .order-stat-number {
+            font-size: 28px;
+            font-weight: bold;
+            color: #1f2933;
+        }
+
+        /* RECENT ORDERS */
+
+        .recent-section {
+            background: white;
+            border-radius: 13px;
+            box-shadow:
+                0 2px 10px rgba(0,0,0,.05);
+            overflow: hidden;
+        }
+
+        .recent-header {
+            padding: 20px;
+            border-bottom: 1px solid #edf0f2;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .recent-title {
+            font-size: 19px;
+            font-weight: bold;
+            color: #1f2933;
+        }
+
+        .recent-subtitle {
+            color: #7b8794;
+            font-size: 12px;
+        }
+
+        .recent-table-container {
+            overflow-x: auto;
+        }
+
+        .recent-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 800px;
+        }
+
+        .recent-table th {
+            background: #f7f9fa;
+            color: #52606d;
+            font-size: 12px;
+            text-align: left;
+            padding: 14px 16px;
+            border-bottom: 1px solid #e5e9ec;
+        }
+
+        .recent-table td {
+            padding: 14px 16px;
+            font-size: 13px;
+            color: #323f4b;
+            border-bottom: 1px solid #edf0f2;
+        }
+
+        .recent-table tr:hover td {
+            background: #fafbfc;
+        }
+
+        .order-number {
+            color: #1976d2;
+            font-weight: bold;
+        }
+
+        .order-total {
+            font-weight: bold;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .status-completed {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .status-active {
+            background: #fff3e0;
+            color: #ef6c00;
+        }
+
+        .payment-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 10px;
+            background: #f1f5f8;
+            border-radius: 20px;
+            font-size: 11px;
+        }
+
+        .receipt-button {
+            border: none;
+            background: #7b1fa2;
+            color: white;
+            padding: 7px 11px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+
+        .receipt-button:hover {
+            background: #6a1b86;
+        }
+
+        /* EMPTY */
+
+        .empty-reports {
+            padding: 60px 20px;
+            text-align: center;
+            color: #7b8794;
+        }
+
+        .empty-icon {
+            font-size: 50px;
+            margin-bottom: 10px;
+        }
+
+        /* LOADING */
+
+        .loading {
+            padding: 50px;
+            text-align: center;
+            color: #7b8794;
+        }
+
+        .error {
+            padding: 40px;
+            text-align: center;
+            color: #c0392b;
+        }
+
+        /* RESPONSIVE */
+
+        @media (max-width: 1100px) {
+
+            .sales-grid {
+                grid-template-columns:
+                    repeat(2, minmax(0, 1fr));
+            }
+
+            .order-stat-grid {
+                grid-template-columns:
+                    repeat(3, minmax(0, 1fr));
+            }
+
+        }
+
+        @media (max-width: 700px) {
+
+            .reports-page {
+                padding: 15px;
+            }
+
+            .sales-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .payment-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .order-stat-grid {
+                grid-template-columns: 1fr;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+<div class="app-container">
+
+    {% include 'sidebar.html' %}
+
+
+    <main class="main-content">
+
+        <div class="reports-page">
+
+
+            <!-- HEADER -->
+
+            <div class="reports-header">
+
+                <div class="reports-title">
+
+                    <h1>
+                        📊 Hesabat
+                    </h1>
+
+                    <p>
+                        Restoranın satış və sifariş statistikası
+                    </p>
+
+                </div>
+
+
+                <button
+                    class="refresh-button"
+                    onclick="loadReports()">
+
+                    🔄 Yenilə
+
+                </button>
+
+            </div>
+
+
+            <!-- SATIŞ KARTLARI -->
+
+            <div class="sales-grid">
+
+
+                <div class="sales-card">
+
+                    <div class="sales-card-icon">
+                        💰
+                    </div>
+
+                    <div class="sales-card-label">
+                        Ümumi satış
+                    </div>
+
+                    <div
+                        id="totalSales"
+                        class="sales-card-value">
+
+                        0.00 ₼
+
+                    </div>
+
+                    <div class="sales-card-description">
+                        Bütün tamamlanmış sifarişlər
+                    </div>
+
+                </div>
+
+
+                <div class="sales-card">
+
+                    <div class="sales-card-icon">
+                        📅
+                    </div>
+
+                    <div class="sales-card-label">
+                        Bugünkü satış
+                    </div>
+
+                    <div
+                        id="todaySales"
+                        class="sales-card-value">
+
+                        0.00 ₼
+
+                    </div>
+
+                    <div class="sales-card-description">
+                        Bu gün tamamlanan satışlar
+                    </div>
+
+                </div>
+
+
+                <div class="sales-card">
+
+                    <div class="sales-card-icon">
+                        💵
+                    </div>
+
+                    <div class="sales-card-label">
+                        Nağd satış
+                    </div>
+
+                    <div
+                        id="cashSales"
+                        class="sales-card-value">
+
+                        0.00 ₼
+
+                    </div>
+
+                    <div class="sales-card-description">
+                        Nağd ödənişlər
+                    </div>
+
+                </div>
+
+
+                <div class="sales-card">
+
+                    <div class="sales-card-icon">
+                        💳
+                    </div>
+
+                    <div class="sales-card-label">
+                        Kart satış
+                    </div>
+
+                    <div
+                        id="cardSales"
+                        class="sales-card-value">
+
+                        0.00 ₼
+
+                    </div>
+
+                    <div class="sales-card-description">
+                        Kart ödənişləri
+                    </div>
+
+                </div>
+
+
+            </div>
+
+
+            <!-- ÖDƏNİŞ STATİSTİKASI -->
+
+            <div class="payment-grid">
+
+
+                <div class="payment-card">
+
+                    <div class="payment-card-header">
+
+                        <div class="payment-card-title">
+                            💵 Nağd ödənişlər
+                        </div>
+
+                        <div class="payment-card-icon">
+                            💰
+                        </div>
+
+                    </div>
+
+                    <div
+                        id="todayCashSales"
+                        class="payment-amount">
+
+                        0.00 ₼
+
+                    </div>
+
+                    <div class="payment-subtitle">
+                        Bugünkü nağd satış
+                    </div>
+
+                </div>
+
+
+                <div class="payment-card">
+
+                    <div class="payment-card-header">
+
+                        <div class="payment-card-title">
+                            💳 Kart ödənişləri
+                        </div>
+
+                        <div class="payment-card-icon">
+                            💳
+                        </div>
+
+                    </div>
+
+                    <div
+                        id="todayCardSales"
+                        class="payment-amount">
+
+                        0.00 ₼
+
+                    </div>
+
+                    <div class="payment-subtitle">
+                        Bugünkü kart satış
+                    </div>
+
+                </div>
+
+
+            </div>
+
+
+            <!-- SİFARİŞ STATİSTİKASI -->
+
+            <div class="order-stat-grid">
+
+
+                <div class="order-stat-card">
+
+                    <div class="order-stat-title">
+                        📋 Ümumi sifariş
+                    </div>
+
+                    <div
+                        id="totalOrders"
+                        class="order-stat-number">
+
+                        0
+
+                    </div>
+
+                </div>
+
+
+                <div class="order-stat-card">
+
+                    <div class="order-stat-title">
+                        🟢 Aktiv sifariş
+                    </div>
+
+                    <div
+                        id="activeOrders"
+                        class="order-stat-number">
+
+                        0
+
+                    </div>
+
+                </div>
+
+
+                <div class="order-stat-card">
+
+                    <div class="order-stat-title">
+                        ✅ Tamamlanmış sifariş
+                    </div>
+
+                    <div
+                        id="completedOrders"
+                        class="order-stat-number">
+
+                        0
+
+                    </div>
+
+                </div>
+
+
+            </div>
+
+
+            <!-- SON SİFARİŞLƏR -->
+
+            <section class="recent-section">
+
+                <div class="recent-header">
+
+                    <div>
+
+                        <div class="recent-title">
+                            🧾 Son sifarişlər
+                        </div>
+
+                        <div class="recent-subtitle">
+                            Son 10 sifariş
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    id="recentOrdersContainer"
+                    class="recent-table-container">
+
+                    <div class="loading">
+                        Hesabat yüklənir...
+                    </div>
+
+                </div>
+
+            </section>
+
+
+        </div>
+
+    </main>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+   HESABATI YÜKLƏ
+===================================================== */
+
+async function loadReports() {
+
+    const container =
+        document.getElementById(
+            "recentOrdersContainer"
+        );
+
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/reports"
+            );
+
+
+        if (!response.ok) {
+
+            const errorData =
+                await response
+                    .json()
+                    .catch(() => ({}));
+
+
+            throw new Error(
+                errorData.message ||
+                "Hesabat məlumatları alınmadı."
+            );
+
+        }
+
+
+        const data =
+            await response.json();
+
+
+        if (!data.success) {
+
+            throw new Error(
+                data.message ||
+                "Hesabat məlumatları alınmadı."
+            );
+
+        }
+
+
+        /* =============================================
+           SATIŞLAR
+        ============================================= */
+
+        document.getElementById(
+            "totalSales"
+        ).textContent =
+            formatMoney(
+                data.total_sales
+            );
+
+
+        document.getElementById(
+            "todaySales"
+        ).textContent =
+            formatMoney(
+                data.today_sales
+            );
+
+
+        document.getElementById(
+            "cashSales"
+        ).textContent =
+            formatMoney(
+                data.cash_sales
+            );
+
+
+        document.getElementById(
+            "cardSales"
+        ).textContent =
+            formatMoney(
+                data.card_sales
+            );
+
+
+        /* =============================================
+           BUGÜNKÜ ÖDƏNİŞLƏR
+        ============================================= */
+
+        document.getElementById(
+            "todayCashSales"
+        ).textContent =
+            formatMoney(
+                data.today_cash_sales
+            );
+
+
+        document.getElementById(
+            "todayCardSales"
+        ).textContent =
+            formatMoney(
+                data.today_card_sales
+            );
+
+
+        /* =============================================
+           SİFARİŞLƏR
+        ============================================= */
+
+        document.getElementById(
+            "totalOrders"
+        ).textContent =
+            data.total_orders || 0;
+
+
+        document.getElementById(
+            "activeOrders"
+        ).textContent =
+            data.active_orders || 0;
+
+
+        document.getElementById(
+            "completedOrders"
+        ).textContent =
+            data.completed_orders || 0;
+
+
+        /* =============================================
+           SON SİFARİŞLƏR
+        ============================================= */
+
+        const recent =
+            Array.isArray(data.recent)
+                ? data.recent
+                : [];
+
+
+        renderRecentOrders(
+            recent
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "Hesabat xətası:",
+            error
+        );
+
+
+        container.innerHTML = `
+
+            <div class="error">
+
+                <h3>
+                    Hesabat yüklənmədi
+                </h3>
+
+                <p>
+                    ${escapeHtml(
+                        error.message
+                    )}
+                </p>
+
+            </div>
+
+        `;
+
+    }
+
+}
+
+
+/* =====================================================
+   SON SİFARİŞLƏR
+===================================================== */
+
+function renderRecentOrders(
+    orders
+) {
+
+    const container =
+        document.getElementById(
+            "recentOrdersContainer"
+        );
+
+
+    if (!orders.length) {
+
+        container.innerHTML = `
+
+            <div class="empty-reports">
+
+                <div class="empty-icon">
+                    📋
+                </div>
+
+                <h3>
+                    Sifariş yoxdur
+                </h3>
+
+                <p>
+                    Hələ heç bir sifariş yaradılmayıb.
+                </p>
+
+            </div>
+
+        `;
+
+        return;
+
+    }
+
+
+    container.innerHTML = `
+
+        <table class="recent-table">
+
+            <thead>
+
+                <tr>
+
+                    <th>
+                        Sifariş
+                    </th>
+
+                    <th>
+                        Masa
+                    </th>
+
+                    <th>
+                        Məbləğ
+                    </th>
+
+                    <th>
+                        Status
+                    </th>
+
+                    <th>
+                        Ödəniş
+                    </th>
+
+                    <th>
+                        Tarix
+                    </th>
+
+                    <th>
+                        Çek
+                    </th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                ${orders.map(
+                    order => {
+
+                        const isCompleted =
+                            order.status ===
+                            "Tamamlandı";
+
+
+                        return `
+
+                            <tr>
+
+                                <td>
+
+                                    <span class="order-number">
+
+                                        #${order.id}
+
+                                    </span>
+
+                                </td>
+
+
+                                <td>
+
+                                    Masa
+                                    ${order.table_number}
+
+                                </td>
+
+
+                                <td>
+
+                                    <span class="order-total">
+
+                                        ${formatMoney(
+                                            order.total
+                                        )}
+
+                                    </span>
+
+                                </td>
+
+
+                                <td>
+
+                                    ${
+                                        isCompleted
+
+                                        ?
+
+                                        `
+                                        <span
+                                            class="status-badge status-completed">
+
+                                            ✅ Tamamlandı
+
+                                        </span>
+                                        `
+
+                                        :
+
+                                        `
+                                        <span
+                                            class="status-badge status-active">
+
+                                            🟢 ${escapeHtml(
+                                                order.status ||
+                                                "Aktiv"
+                                            )}
+
+                                        </span>
+                                        `
+                                    }
+
+                                </td>
+
+
+                                <td>
+
+                                    <span class="payment-badge">
+
+                                        ${
+                                            order.payment_method ===
+                                            "Nağd"
+
+                                            ? "💵 Nağd"
+
+                                            : order.payment_method ===
+                                              "Kart"
+
+                                            ? "💳 Kart"
+
+                                            : "—"
+                                        }
+
+                                    </span>
+
+                                </td>
+
+
+                                <td>
+
+                                    ${formatDate(
+                                        order.created_at
+                                    )}
+
+                                </td>
+
+
+                                <td>
+
+                                    ${
+                                        isCompleted
+
+                                        ?
+
+                                        `
+                                        <button
+                                            class="receipt-button"
+                                            onclick="openReceipt(
+                                                ${order.id}
+                                            )">
+
+                                            🧾 Aç
+
+                                        </button>
+                                        `
+
+                                        :
+
+                                        "—"
+                                    }
+
+                                </td>
+
+                            </tr>
+
+                        `;
+
+                    }
+                ).join("")}
+
+            </tbody>
+
+        </table>
+
+    `;
+
+}
+
+
+/* =====================================================
+   PUL FORMAT
+===================================================== */
+
+function formatMoney(
+    value
+) {
+
+    const number =
+        Number(value || 0);
+
+
+    return `${number.toFixed(2)} ₼`;
+
+}
+
+
+/* =====================================================
+   TARİX FORMAT
+===================================================== */
+
+function formatDate(
+    value
+) {
+
+    if (!value) {
+
+        return "—";
+
+    }
+
+
+    const date =
+        new Date(
+            String(value)
+                .replace(" ", "T")
+        );
+
+
+    if (
+        isNaN(
+            date.getTime()
+        )
+    ) {
+
+        return escapeHtml(
+            String(value)
+        );
+
+    }
+
+
+    return date.toLocaleString(
+        "az-AZ",
+        {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit"
+        }
+    );
+
+}
+
+
+/* =====================================================
+   ÇEK
+===================================================== */
+
+function openReceipt(
+    orderId
+) {
+
+    window.open(
+        `/receipt/${orderId}`,
+        "_blank"
+    );
+
+}
+
+
+/* =====================================================
+   HTML TƏHLÜKƏSİZLİYİ
+===================================================== */
+
+function escapeHtml(
+    value
+) {
+
+    const div =
+        document.createElement(
+            "div"
+        );
+
+
+    div.textContent =
+        value ?? "";
+
+
+    return div.innerHTML;
+
+}
+
+
+/* =====================================================
+   BAŞLANĞIC
+===================================================== */
+
+loadReports();
+
+
+/* =====================================================
+   AVTOMATİK YENİLƏNMƏ
+===================================================== */
+
+setInterval(
+    loadReports,
+    10000
+);
+
+</script>
+
+</body>
+
+</html>

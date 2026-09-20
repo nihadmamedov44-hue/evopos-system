@@ -1,0 +1,1778 @@
+<!DOCTYPE html>
+<html lang="az">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>EVOPOS - Sifariş</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+
+    <style>
+
+        .order-page {
+            min-height: 100vh;
+            padding: 30px;
+            box-sizing: border-box;
+            background: #f4f6f8;
+        }
+
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            gap: 15px;
+        }
+
+        .order-header h1 {
+            margin: 0;
+            color: #1f2933;
+            font-size: 27px;
+        }
+
+        .back-button {
+            border: none;
+            background: #1b2a38;
+            color: white;
+            padding: 11px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .order-content {
+            width: 100%;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 360px;
+            gap: 25px;
+            box-sizing: border-box;
+        }
+
+        .menu-section,
+        .order-cart {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,.06);
+        }
+
+        .menu-section {
+            padding: 22px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #1f2933;
+            margin-bottom: 18px;
+        }
+
+        .category-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .category-button {
+            border: 1px solid #d9e2ec;
+            background: white;
+            padding: 9px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .category-button.active {
+            background: #1b2a38;
+            color: white;
+            border-color: #1b2a38;
+        }
+
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(
+                auto-fill,
+                minmax(190px, 1fr)
+            );
+            gap: 15px;
+        }
+
+        .product-card {
+            border: 1px solid #e3e8ec;
+            border-radius: 10px;
+            padding: 17px;
+            text-align: center;
+            background: white;
+        }
+
+        .product-icon {
+            font-size: 38px;
+            height: 48px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .product-name {
+            font-size: 16px;
+            font-weight: bold;
+            color: #1f2933;
+            margin-bottom: 6px;
+        }
+
+        .product-price {
+            color: #52606d;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+
+        .add-product {
+            width: 100%;
+            border: none;
+            background: #1b2a38;
+            color: white;
+            padding: 10px;
+            border-radius: 7px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .add-product:hover {
+            background: #263b4d;
+        }
+
+        /* CART */
+
+        .order-cart {
+            overflow: hidden;
+            position: sticky;
+            top: 20px;
+            height: fit-content;
+        }
+
+        .cart-header {
+            padding: 20px;
+            border-bottom: 1px solid #edf0f2;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .cart-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #1f2933;
+        }
+
+        .cart-count {
+            color: #7b8794;
+            font-size: 13px;
+        }
+
+        .cart-body {
+            padding: 15px;
+            max-height: 450px;
+            overflow-y: auto;
+        }
+
+        .empty-cart {
+            text-align: center;
+            padding: 55px 15px;
+            color: #7b8794;
+        }
+
+        .empty-cart-icon {
+            font-size: 55px;
+            margin-bottom: 12px;
+        }
+
+        .cart-item {
+            padding: 13px 0;
+            border-bottom: 1px solid #edf0f2;
+        }
+
+        .cart-item-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .cart-item-name {
+            font-weight: bold;
+            color: #323f4b;
+            font-size: 14px;
+        }
+
+        .cart-item-price {
+            font-weight: bold;
+            color: #1f2933;
+            white-space: nowrap;
+        }
+
+        .cart-item-bottom {
+            margin-top: 9px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .quantity-controls {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .quantity-button {
+            width: 29px;
+            height: 29px;
+            border: none;
+            border-radius: 6px;
+            background: #e9eef2;
+            cursor: pointer;
+            font-size: 17px;
+            font-weight: bold;
+        }
+
+        .quantity-value {
+            min-width: 25px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .remove-button {
+            border: none;
+            background: #fdecea;
+            color: #c62828;
+            width: 29px;
+            height: 29px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .cart-footer {
+            border-top: 1px solid #edf0f2;
+            padding: 18px;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 20px;
+            font-weight: bold;
+            color: #1b2a38;
+            margin-bottom: 15px;
+        }
+
+        .send-order-button {
+            width: 100%;
+            border: none;
+            background: #2e7d32;
+            color: white;
+            height: 45px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 9px;
+        }
+
+        .send-order-button:hover {
+            background: #256b29;
+        }
+
+        .payment-button {
+            width: 100%;
+            border: none;
+            background: #1976d2;
+            color: white;
+            height: 45px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .payment-button:disabled {
+            background: #b0bec5;
+            cursor: not-allowed;
+        }
+
+        .existing-order {
+            background: #fff8e1;
+            color: #856404;
+            border: 1px solid #ffe082;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 12px;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+
+        /* PAYMENT MODAL */
+
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.55);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            width: 100%;
+            max-width: 430px;
+            background: white;
+            border-radius: 14px;
+            padding: 25px;
+            box-sizing: border-box;
+        }
+
+        .modal-content h2 {
+            margin-top: 0;
+            color: #1f2933;
+        }
+
+        .payment-total {
+            background: #f4f6f8;
+            padding: 15px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 18px;
+        }
+
+        .payment-methods {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        .payment-method {
+            border: 1px solid #d9e2ec;
+            background: white;
+            padding: 13px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .payment-method.active {
+            border-color: #1976d2;
+            background: #e3f2fd;
+            color: #1565c0;
+            font-weight: bold;
+        }
+
+        .cash-section {
+            display: none;
+            margin-bottom: 15px;
+        }
+
+        .cash-section.show {
+            display: block;
+        }
+
+        .cash-section label {
+            display: block;
+            margin-bottom: 7px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .cash-input {
+            width: 100%;
+            height: 43px;
+            border: 1px solid #d9e2ec;
+            border-radius: 8px;
+            padding: 0 12px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        .change-box {
+            margin-top: 10px;
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 12px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-cancel {
+            flex: 1;
+            border: none;
+            background: #95a5a6;
+            color: white;
+            height: 43px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .modal-confirm {
+            flex: 1;
+            border: none;
+            background: #2e7d32;
+            color: white;
+            height: 43px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        @media (max-width: 1100px) {
+
+            .order-content {
+                grid-template-columns: 1fr;
+            }
+
+            .order-cart {
+                position: static;
+            }
+
+        }
+
+        @media (max-width: 700px) {
+
+            .order-page {
+                padding: 15px;
+            }
+
+            .products-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+<div class="app-container">
+
+    {% include 'sidebar.html' %}
+
+    <main class="order-page">
+
+        <div class="order-header">
+
+            <h1>
+                🪑 Masa {{ table_number }}
+            </h1>
+
+            <button
+                class="back-button"
+                onclick="window.location.href='/'">
+
+                ← Geri
+
+            </button>
+
+        </div>
+
+
+        <div class="order-content">
+
+
+            <!-- MƏHSULLAR -->
+
+            <section class="menu-section">
+
+                <div class="section-title">
+                    Məhsullar
+                </div>
+
+
+                <div
+                    id="categoryButtons"
+                    class="category-buttons">
+                </div>
+
+
+                <div
+                    id="productsGrid"
+                    class="products-grid">
+
+                    Məhsullar yüklənir...
+
+                </div>
+
+            </section>
+
+
+            <!-- SİFARİŞ -->
+
+            <section class="order-cart">
+
+                <div class="cart-header">
+
+                    <div class="cart-title">
+                        🛒 Sifariş
+                    </div>
+
+                    <div
+                        id="cartCount"
+                        class="cart-count">
+                        0 məhsul
+                    </div>
+
+                </div>
+
+
+                <div id="existingOrderInfo"></div>
+
+
+                <div
+                    id="cartBody"
+                    class="cart-body">
+
+                    <div class="empty-cart">
+
+                        <div class="empty-cart-icon">
+                            🛒
+                        </div>
+
+                        <strong>
+                            Sifariş boşdur
+                        </strong>
+
+                        <p>
+                            Məhsul seçərək sifarişə əlavə edin
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="cart-footer">
+
+                    <div class="total-row">
+
+                        <span>
+                            Cəmi
+                        </span>
+
+                        <span id="cartTotal">
+                            0.00 ₼
+                        </span>
+
+                    </div>
+
+
+                    <button
+                        id="sendOrderButton"
+                        class="send-order-button"
+                        onclick="sendOrder()">
+
+                        📤 Sifarişi göndər
+
+                    </button>
+
+
+                    <button
+                        id="paymentButton"
+                        class="payment-button"
+                        onclick="openPaymentModal()"
+                        disabled>
+
+                        💳 Ödəniş
+
+                    </button>
+
+                </div>
+
+            </section>
+
+        </div>
+
+    </main>
+
+</div>
+
+
+<!-- ÖDƏNİŞ MODALI -->
+
+<div
+    id="paymentModal"
+    class="modal">
+
+    <div class="modal-content">
+
+        <h2>
+            💳 Ödəniş
+        </h2>
+
+
+        <div class="payment-total">
+
+            <span>
+                Ümumi
+            </span>
+
+            <span id="paymentTotal">
+                0.00 ₼
+            </span>
+
+        </div>
+
+
+        <div class="payment-methods">
+
+            <button
+                id="cashButton"
+                class="payment-method active"
+                onclick="selectPaymentMethod('Nağd')">
+
+                💵 Nağd
+
+            </button>
+
+
+            <button
+                id="cardButton"
+                class="payment-method"
+                onclick="selectPaymentMethod('Kart')">
+
+                💳 Kart
+
+            </button>
+
+        </div>
+
+
+        <div
+            id="cashSection"
+            class="cash-section show">
+
+            <label>
+                Verilən məbləğ
+            </label>
+
+            <input
+                id="cashInput"
+                class="cash-input"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+                oninput="calculateChange()">
+
+
+            <div class="change-box">
+
+                <span>
+                    Qalıq
+                </span>
+
+                <span id="changeAmount">
+                    0.00 ₼
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <div class="modal-buttons">
+
+            <button
+                class="modal-cancel"
+                onclick="closePaymentModal()">
+
+                Ləğv et
+
+            </button>
+
+
+            <button
+                class="modal-confirm"
+                onclick="completePayment()">
+
+                Ödənişi tamamla
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+const tableNumber = {{ table_number }};
+
+let products = [];
+
+let cart = [];
+
+let currentOrderId = null;
+
+let currentTotal = 0;
+
+let paymentMethod = "Nağd";
+
+
+/* =====================================================
+   MENYU
+===================================================== */
+
+async function loadProducts() {
+
+    try {
+
+        const response =
+            await fetch("/api/menu");
+
+        const data =
+            await response.json();
+
+        products =
+            Array.isArray(data)
+                ? data
+                : [];
+
+        createCategories();
+
+        renderProducts();
+
+    } catch (error) {
+
+        console.error(error);
+
+        document.getElementById(
+            "productsGrid"
+        ).innerHTML = `
+            <div>
+                Məhsullar yüklənmədi.
+            </div>
+        `;
+
+    }
+
+}
+
+
+/* =====================================================
+   KATEQORİYALAR
+===================================================== */
+
+function createCategories() {
+
+    const container =
+        document.getElementById(
+            "categoryButtons"
+        );
+
+    const categories = [
+        "Hamısı",
+        ...new Set(
+            products.map(
+                product => product.category
+            )
+        )
+    ];
+
+    container.innerHTML =
+        categories.map(
+            (category, index) => `
+
+                <button
+                    class="category-button
+                    ${index === 0 ? "active" : ""}"
+                    onclick="filterCategory(
+                        '${escapeAttribute(category)}',
+                        this
+                    )">
+
+                    ${escapeHtml(category)}
+
+                </button>
+
+            `
+        ).join("");
+
+}
+
+
+/* =====================================================
+   MƏHSULLARI GÖSTƏR
+===================================================== */
+
+function filterCategory(category, button) {
+
+    document
+        .querySelectorAll(".category-button")
+        .forEach(item =>
+            item.classList.remove("active")
+        );
+
+    button.classList.add("active");
+
+    if (category === "Hamısı") {
+
+        renderProducts(products);
+
+    } else {
+
+        renderProducts(
+            products.filter(
+                product =>
+                    product.category === category
+            )
+        );
+
+    }
+
+}
+
+
+function getCategoryIcon(category) {
+
+    if (category === "Yeməklər") {
+        return "🍽️";
+    }
+
+    if (category === "İçkilər") {
+        return "🥤";
+    }
+
+    if (category === "Desertlər") {
+        return "🍰";
+    }
+
+    return "🍽️";
+
+}
+
+
+function renderProducts(list = products) {
+
+    const grid =
+        document.getElementById(
+            "productsGrid"
+        );
+
+
+    if (!list.length) {
+
+        grid.innerHTML = `
+            <div>
+                Məhsul yoxdur.
+            </div>
+        `;
+
+        return;
+
+    }
+
+
+    grid.innerHTML =
+        list.map(product => `
+
+            <div class="product-card">
+
+                <div class="product-icon">
+                    ${getCategoryIcon(
+                        product.category
+                    )}
+                </div>
+
+                <div class="product-name">
+                    ${escapeHtml(product.name)}
+                </div>
+
+                <div class="product-price">
+                    ${Number(product.price).toFixed(2)} ₼
+                </div>
+
+                <button
+                    class="add-product"
+                    onclick="addToCart(${product.id})">
+
+                    ＋ Əlavə et
+
+                </button>
+
+            </div>
+
+        `).join("");
+
+}
+
+
+/* =====================================================
+   AKTİV SİFARİŞİ YÜKLƏ
+===================================================== */
+
+async function loadExistingOrder() {
+
+    try {
+
+        const tablesResponse =
+            await fetch("/api/tables");
+
+        if (!tablesResponse.ok) {
+            return;
+        }
+
+        const tables =
+            await tablesResponse.json();
+
+
+        const table =
+            tables.find(
+                item =>
+                    Number(item.table_number) ===
+                    Number(tableNumber)
+            );
+
+
+        if (!table || !table.order_id) {
+
+            return;
+
+        }
+
+
+        /* Aktiv sifariş var */
+
+        currentOrderId =
+            Number(table.order_id);
+
+
+        const orderResponse =
+            await fetch(
+                `/api/order/${currentOrderId}`
+            );
+
+
+        if (!orderResponse.ok) {
+
+            currentOrderId = null;
+
+            return;
+
+        }
+
+
+        const data =
+            await orderResponse.json();
+
+
+        if (!data.success) {
+
+            currentOrderId = null;
+
+            return;
+
+        }
+
+
+        if (
+            data.order.status ===
+            "Tamamlandı"
+        ) {
+
+            currentOrderId = null;
+
+            return;
+
+        }
+
+
+        cart =
+            (data.items || []).map(item => ({
+
+                id: null,
+
+                name:
+                    item.product_name ||
+                    item.name,
+
+                price:
+                    Number(item.price || 0),
+
+                quantity:
+                    Number(item.quantity || 0)
+
+            }));
+
+
+        currentTotal =
+            Number(data.order.total || 0);
+
+
+        document.getElementById(
+            "existingOrderInfo"
+        ).innerHTML = `
+
+            <div class="existing-order">
+
+                📋 Mövcud aktiv sifariş
+                <strong>
+                    #${currentOrderId}
+                </strong>
+
+            </div>
+
+        `;
+
+
+        renderCart();
+
+
+        document.getElementById(
+            "paymentButton"
+        ).disabled = false;
+
+
+    } catch (error) {
+
+        console.error(
+            "Aktiv sifariş yüklənmədi:",
+            error
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   SƏBƏTƏ ƏLAVƏ
+===================================================== */
+
+function addToCart(productId) {
+
+    const product =
+        products.find(
+            item =>
+                Number(item.id) ===
+                Number(productId)
+        );
+
+
+    if (!product) {
+        return;
+    }
+
+
+    const existing =
+        cart.find(
+            item =>
+                item.name === product.name
+        );
+
+
+    if (existing) {
+
+        existing.quantity += 1;
+
+    } else {
+
+        cart.push({
+
+            id: product.id,
+
+            name: product.name,
+
+            price: Number(product.price),
+
+            quantity: 1
+
+        });
+
+    }
+
+
+    renderCart();
+
+}
+
+
+/* =====================================================
+   SAY ARTIR
+===================================================== */
+
+function increaseQuantity(index) {
+
+    if (!cart[index]) {
+        return;
+    }
+
+    cart[index].quantity += 1;
+
+    renderCart();
+
+}
+
+
+/* =====================================================
+   SAY AZALT
+===================================================== */
+
+function decreaseQuantity(index) {
+
+    if (!cart[index]) {
+        return;
+    }
+
+
+    cart[index].quantity -= 1;
+
+
+    if (cart[index].quantity <= 0) {
+
+        cart.splice(index, 1);
+
+    }
+
+
+    renderCart();
+
+}
+
+
+/* =====================================================
+   SİL
+===================================================== */
+
+function removeFromCart(index) {
+
+    if (!cart[index]) {
+        return;
+    }
+
+    cart.splice(index, 1);
+
+    renderCart();
+
+}
+
+
+/* =====================================================
+   SƏBƏTİ GÖSTƏR
+===================================================== */
+
+function renderCart() {
+
+    const body =
+        document.getElementById(
+            "cartBody"
+        );
+
+
+    const count =
+        cart.reduce(
+            (sum, item) =>
+                sum + item.quantity,
+            0
+        );
+
+
+    currentTotal =
+        cart.reduce(
+            (sum, item) =>
+                sum +
+                Number(item.price) *
+                Number(item.quantity),
+            0
+        );
+
+
+    document.getElementById(
+        "cartCount"
+    ).textContent =
+        `${count} məhsul`;
+
+
+    document.getElementById(
+        "cartTotal"
+    ).textContent =
+        `${currentTotal.toFixed(2)} ₼`;
+
+
+    document.getElementById(
+        "paymentTotal"
+    ).textContent =
+        `${currentTotal.toFixed(2)} ₼`;
+
+
+    if (!cart.length) {
+
+        body.innerHTML = `
+
+            <div class="empty-cart">
+
+                <div class="empty-cart-icon">
+                    🛒
+                </div>
+
+                <strong>
+                    Sifariş boşdur
+                </strong>
+
+                <p>
+                    Məhsul seçərək sifarişə əlavə edin
+                </p>
+
+            </div>
+
+        `;
+
+
+        document.getElementById(
+            "paymentButton"
+        ).disabled = true;
+
+
+        return;
+
+    }
+
+
+    body.innerHTML =
+        cart.map(
+            (item, index) => `
+
+                <div class="cart-item">
+
+                    <div class="cart-item-top">
+
+                        <div class="cart-item-name">
+                            ${escapeHtml(item.name)}
+                        </div>
+
+                        <div class="cart-item-price">
+                            ${(
+                                item.price *
+                                item.quantity
+                            ).toFixed(2)} ₼
+                        </div>
+
+                    </div>
+
+
+                    <div class="cart-item-bottom">
+
+                        <div class="quantity-controls">
+
+                            <button
+                                class="quantity-button"
+                                onclick="decreaseQuantity(${index})">
+
+                                −
+
+                            </button>
+
+
+                            <span class="quantity-value">
+                                ${item.quantity}
+                            </span>
+
+
+                            <button
+                                class="quantity-button"
+                                onclick="increaseQuantity(${index})">
+
+                                +
+
+                            </button>
+
+
+                            <button
+                                class="remove-button"
+                                onclick="removeFromCart(${index})">
+
+                                🗑
+
+                            </button>
+
+                        </div>
+
+
+                    </div>
+
+                </div>
+
+            `
+        ).join("");
+
+
+    if (currentOrderId) {
+
+        document.getElementById(
+            "paymentButton"
+        ).disabled = false;
+
+    }
+
+}
+
+
+/* =====================================================
+   SİFARİŞİ GÖNDƏR / YENİLƏ
+===================================================== */
+
+async function sendOrder() {
+
+    if (!cart.length) {
+
+        alert(
+            "Sifarişdə məhsul yoxdur."
+        );
+
+        return;
+
+    }
+
+
+    const items =
+        cart.map(item => ({
+
+            name: item.name,
+
+            price: item.price,
+
+            quantity: item.quantity
+
+        }));
+
+
+    try {
+
+        let response;
+
+
+        /* Mövcud sifarişdirsə yenilə */
+
+        if (currentOrderId) {
+
+            response =
+                await fetch(
+                    `/api/order/${currentOrderId}/update`,
+                    {
+                        method: "PUT",
+
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+
+                        body: JSON.stringify({
+                            items: items
+                        })
+                    }
+                );
+
+        }
+
+
+        /* Yeni sifarişdirsə yarat */
+
+        else {
+
+            response =
+                await fetch(
+                    "/api/order",
+                    {
+                        method: "POST",
+
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+
+                        body: JSON.stringify({
+
+                            table_number:
+                                tableNumber,
+
+                            items: items
+
+                        })
+                    }
+                );
+
+        }
+
+
+        const data =
+            await response.json();
+
+
+        if (!response.ok || !data.success) {
+
+            alert(
+                data.message ||
+                "Sifariş göndərilmədi."
+            );
+
+            return;
+
+        }
+
+
+        if (!currentOrderId) {
+
+            currentOrderId =
+                data.order_id;
+
+        }
+
+
+        currentTotal =
+            Number(data.total);
+
+
+        document.getElementById(
+            "existingOrderInfo"
+        ).innerHTML = `
+
+            <div class="existing-order">
+
+                📋 Aktiv sifariş
+                <strong>
+                    #${currentOrderId}
+                </strong>
+
+            </div>
+
+        `;
+
+
+        document.getElementById(
+            "paymentButton"
+        ).disabled = false;
+
+
+        alert(
+            currentOrderId
+                ? "Sifariş yadda saxlanıldı."
+                : "Sifariş göndərildi."
+        );
+
+
+    } catch (error) {
+
+        console.error(error);
+
+        alert(
+            "Sifariş göndərilərkən xəta baş verdi."
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   ÖDƏNİŞ MODALI
+===================================================== */
+
+function openPaymentModal() {
+
+    if (!currentOrderId) {
+
+        alert(
+            "Əvvəlcə sifarişi göndərin."
+        );
+
+        return;
+
+    }
+
+
+    if (!cart.length) {
+
+        alert(
+            "Sifariş boşdur."
+        );
+
+        return;
+
+    }
+
+
+    document.getElementById(
+        "paymentTotal"
+    ).textContent =
+        `${currentTotal.toFixed(2)} ₼`;
+
+
+    document.getElementById(
+        "paymentModal"
+    ).classList.add("show");
+
+
+    selectPaymentMethod("Nağd");
+
+}
+
+
+function closePaymentModal() {
+
+    document.getElementById(
+        "paymentModal"
+    ).classList.remove("show");
+
+}
+
+
+/* =====================================================
+   ÖDƏNİŞ ÜSULU
+===================================================== */
+
+function selectPaymentMethod(method) {
+
+    paymentMethod = method;
+
+
+    document
+        .getElementById("cashButton")
+        .classList.toggle(
+            "active",
+            method === "Nağd"
+        );
+
+
+    document
+        .getElementById("cardButton")
+        .classList.toggle(
+            "active",
+            method === "Kart"
+        );
+
+
+    document
+        .getElementById("cashSection")
+        .classList.toggle(
+            "show",
+            method === "Nağd"
+        );
+
+
+    if (method === "Kart") {
+
+        document.getElementById(
+            "cashInput"
+        ).value = "";
+
+        document.getElementById(
+            "changeAmount"
+        ).textContent = "0.00 ₼";
+
+    }
+
+}
+
+
+/* =====================================================
+   QALIQ
+===================================================== */
+
+function calculateChange() {
+
+    const paid =
+        Number(
+            document.getElementById(
+                "cashInput"
+            ).value
+        ) || 0;
+
+
+    const change =
+        paid - currentTotal;
+
+
+    document.getElementById(
+        "changeAmount"
+    ).textContent =
+        `${Math.max(change, 0).toFixed(2)} ₼`;
+
+}
+
+
+/* =====================================================
+   ÖDƏNİŞİ TAMAMLA
+===================================================== */
+
+async function completePayment() {
+
+    if (!currentOrderId) {
+
+        alert(
+            "Aktiv sifariş tapılmadı."
+        );
+
+        return;
+
+    }
+
+
+    let paidAmount;
+
+
+    if (paymentMethod === "Kart") {
+
+        paidAmount =
+            currentTotal;
+
+    } else {
+
+        paidAmount =
+            Number(
+                document.getElementById(
+                    "cashInput"
+                ).value
+            ) || 0;
+
+
+        if (paidAmount < currentTotal) {
+
+            alert(
+                "Verilən məbləğ sifariş məbləğindən azdır."
+            );
+
+            return;
+
+        }
+
+    }
+
+
+    try {
+
+        const response =
+            await fetch(
+                `/api/order/${currentOrderId}/payment`,
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+
+                    body: JSON.stringify({
+
+                        payment_method:
+                            paymentMethod,
+
+                        paid_amount:
+                            paidAmount
+
+                    })
+                }
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (!response.ok || !data.success) {
+
+            alert(
+                data.message ||
+                "Ödəniş tamamlanmadı."
+            );
+
+            return;
+
+        }
+
+
+        closePaymentModal();
+
+
+        window.location.href =
+            `/receipt/${currentOrderId}`;
+
+
+    } catch (error) {
+
+        console.error(error);
+
+        alert(
+            "Ödəniş zamanı xəta baş verdi."
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   HTML TƏHLÜKƏSİZLİYİ
+===================================================== */
+
+function escapeHtml(value) {
+
+    const div =
+        document.createElement("div");
+
+    div.textContent =
+        value ?? "";
+
+    return div.innerHTML;
+
+}
+
+
+function escapeAttribute(value) {
+
+    return String(value)
+        .replace(/\\/g, "\\\\")
+        .replace(/'/g, "\\'");
+
+}
+
+
+/* =====================================================
+   BAŞLANĞIC
+===================================================== */
+
+async function initializeOrderPage() {
+
+    await loadProducts();
+
+    await loadExistingOrder();
+
+}
+
+
+initializeOrderPage();
+
+</script>
+
+</body>
+
+</html>

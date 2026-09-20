@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="az">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>EVOPOS - Mətbəx</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+
+    <style>
+
+        .kitchen-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .kitchen-card {
+            background: white;
+            border-radius: 14px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+
+        .kitchen-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+        }
+
+        .order-title {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .order-status {
+            padding: 6px 10px;
+            border-radius: 7px;
+            background: #f1f1f1;
+            font-size: 12px;
+        }
+
+        .order-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .item-name {
+            font-weight: 500;
+        }
+
+        .item-quantity {
+            font-weight: bold;
+        }
+
+        .kitchen-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 18px;
+        }
+
+        .kitchen-buttons button {
+            border: none;
+            padding: 9px 13px;
+            border-radius: 7px;
+            color: white;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .btn-new {
+            background: #079bd3;
+        }
+
+        .btn-preparing {
+            background: #ff9800;
+        }
+
+        .btn-ready {
+            background: #00bd67;
+        }
+
+        .btn-completed {
+            background: #f44336;
+        }
+
+        .kitchen-buttons button:hover {
+            opacity: 0.85;
+        }
+
+        .kitchen-buttons button:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .empty-kitchen {
+            background: white;
+            padding: 30px;
+            border-radius: 14px;
+            color: #777;
+        }
+
+        @media (max-width: 1100px) {
+
+            .kitchen-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 700px) {
+
+            .kitchen-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+{% include 'sidebar.html' %}
+
+<main class="main-content">
+
+    <h1>👨‍🍳 Mətbəx</h1>
+
+    <br>
+
+    <div id="kitchenGrid"
+         class="kitchen-grid">
+
+        <div class="empty-kitchen">
+            Sifarişlər yüklənir...
+        </div>
+
+    </div>
+
+</main>
+
+
+<script>
+
+async function loadKitchenOrders() {
+
+    try {
+
+        const response = await fetch("/api/kitchen/orders");
+
+        if (!response.ok) {
+            throw new Error("Mətbəx sifarişləri alınmadı.");
+        }
+
+        const data = await response.json();
+
+        const orders = Array.isArray(data)
+            ? data
+            : (data.orders || []);
+
+        const grid = document.getElementById("kitchenGrid");
+
+        grid.innerHTML = "";
+
+        if (orders.length === 0) {
+
+            grid.innerHTML = `
+                <div class="empty-kitchen">
+                    Hazırda mətbəxdə aktiv sifariş yoxdur.
+                </div>
+            `;
+
+            return;
+        }
+
+        orders.forEach(order => {
+
+            const card = document.createElement("div");
+
+            card.className = "kitchen-card";
+
+            let itemsHTML = "";
+
+            if (order.items && order.items.length > 0) {
+
+                order.items.forEach(item => {
+
+                    /*
+                     * API-dən product_name gəlir.
+                     * Əgər gələcəkdə name istifadə olunsa,
+                     * onu da dəstəkləyirik.
+                     */
+
+                    const productName =
+                        item.product_name ||
+                        item.name ||
+                        "Məhsul";
+
+                    const quantity =
+                        Number(item.quantity || 0);
+
+                    itemsHTML += `
+
+                        <div class="order-item">
+
+                            <div class="item-name">
+                                ${productName}
+                            </div>
+
+                            <div class="item-quantity">
+                                ${quantity}x
+                            </div>
+
+                        </div>
+
+                    `;
+                });
+
+            } else {
+
+                itemsHTML = `
+                    <div class="order-item">
+                        Məhsul yoxdur
+                    </div>
+                `;
+            }
+
+
+            card.innerHTML = `
+
+                <div class="kitchen-header">
+
+                    <div class="order-title">
+
+                        #${order.id}
+                        —
+                        Masa ${order.table_number}
+
+                    </div>
+
+                    <div class="order-status">
+
+                        ${order.status}
+
+                    </div>
+
+                </div>
+
+
+                <div>
+
+                    ${itemsHTML}
+
+                </div>
+
+
+                <div class="kitchen-buttons">
+
+                    <button
+                        class="btn-new"
+                        onclick="changeStatus(${order.id}, 'Yeni')">
+
+                        Yeni
+
+                    </button>
+
+
+                    <button
+                        class="btn-preparing"
+                        onclick="changeStatus(${order.id}, 'Hazırlanır')">
+
+                        Hazırlanır
+
+                    </button>
+
+
+                    <button
+                        class="btn-ready"
+                        onclick="changeStatus(${order.id}, 'Hazırdır')">
+
+                        Hazırdır
+
+                    </button>
+
+
+                    <button
+                        class="btn-completed"
+                        onclick="changeStatus(${order.id}, 'Tamamlandı')">
+
+                        Tamamlandı
+
+                    </button>
+
+                </div>
+
+            `;
+
+            grid.appendChild(card);
+        });
+
+    } catch (error) {
+
+        console.error(error);
+
+        document.getElementById("kitchenGrid").innerHTML = `
+
+            <div class="empty-kitchen"
+                 style="color:red;">
+
+                Mətbəx sifarişlərini yükləmək mümkün olmadı.
+
+            </div>
+
+        `;
+    }
+}
+
+
+async function changeStatus(orderId, status) {
+
+    try {
+
+        const response = await fetch(
+            `/api/kitchen/order/${orderId}/status`,
+            {
+                method: "PUT",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+                    status: status
+                })
+            }
+        );
+
+
+        const data = await response.json();
+
+
+        if (!response.ok || !data.success) {
+
+            alert(
+                data.message ||
+                "Status dəyişdirilə bilmədi."
+            );
+
+            return;
+        }
+
+
+        /*
+         * Status dəyişdikdən sonra siyahını dərhal yenilə.
+         */
+
+        await loadKitchenOrders();
+
+
+    } catch (error) {
+
+        console.error(error);
+
+        alert(
+            "Serverlə əlaqə yaratmaq mümkün olmadı."
+        );
+    }
+}
+
+
+loadKitchenOrders();
+
+
+/*
+ * Mətbəx hər 3 saniyədən bir yenilənir.
+ */
+
+setInterval(
+    loadKitchenOrders,
+    3000
+);
+
+</script>
+
+</body>
+
+</html>

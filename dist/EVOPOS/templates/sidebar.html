@@ -1,0 +1,209 @@
+<aside class="sidebar">
+
+    <div class="logo">
+        EVOPOS
+    </div>
+
+
+    <div class="sidebar-menu">
+
+        <button class="sidebar-button"
+                onclick="window.location.href='/'">
+            🏠
+            <span>Əsas səhifə</span>
+        </button>
+
+
+        <!-- MENYU
+             Yalnız Administrator -->
+
+        <button id="menuButton"
+                class="sidebar-button"
+                onclick="window.location.href='/menu'">
+
+            🍽️
+            <span>Menyu</span>
+
+        </button>
+
+
+        <button class="sidebar-button"
+                onclick="window.location.href='/orders'">
+
+            📋
+            <span>Sifarişlər</span>
+
+        </button>
+
+
+        <button class="sidebar-button"
+                onclick="window.location.href='/kitchen'">
+
+            👨‍🍳
+            <span>Mətbəx</span>
+
+        </button>
+
+
+        <!-- HESABAT
+             Yalnız Administrator -->
+
+        <button id="reportsButton"
+                class="sidebar-button"
+                onclick="window.location.href='/reports'">
+
+            📊
+            <span>Hesabat</span>
+
+        </button>
+
+    </div>
+
+
+    <!-- İSTİFADƏÇİ -->
+
+    <div class="sidebar-user">
+
+        <div class="user-icon">
+            👤
+        </div>
+
+
+        <div class="user-info">
+
+            <div id="sidebarUserName"
+                 class="user-name">
+                Yüklənir...
+            </div>
+
+
+            <div id="sidebarUserRole"
+                 class="user-role">
+                ...
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ÇIXIŞ -->
+
+    <button class="logout-button"
+            onclick="logout()">
+
+        🚪
+
+        <span>
+            Çıxış
+        </span>
+
+    </button>
+
+</aside>
+
+
+<script>
+
+async function loadCurrentUser() {
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/current-user"
+            );
+
+
+        if (!response.ok) {
+
+            return;
+
+        }
+
+
+        const data =
+            await response.json();
+
+
+        if (!data.success) {
+
+            return;
+
+        }
+
+
+        const user =
+            data.user;
+
+
+        /* İSTİFADƏÇİ ADI */
+
+        document.getElementById(
+            "sidebarUserName"
+        ).textContent =
+            user.name;
+
+
+        /* ROL */
+
+        document.getElementById(
+            "sidebarUserRole"
+        ).textContent =
+            user.role;
+
+
+        /* =================================
+           OFİSİANT
+        ================================= */
+
+        if (
+            user.role === "Ofisiant"
+        ) {
+
+            document.getElementById(
+                "menuButton"
+            ).style.display =
+                "none";
+
+
+            document.getElementById(
+                "reportsButton"
+            ).style.display =
+                "none";
+
+        }
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "İstifadəçi məlumatı alınmadı:",
+            error
+        );
+
+    }
+
+}
+
+
+function logout() {
+
+    if (
+        confirm(
+            "Sistemdən çıxmaq istəyirsiniz?"
+        )
+    ) {
+
+        window.location.href =
+            "/logout";
+
+    }
+
+}
+
+
+loadCurrentUser();
+
+</script>

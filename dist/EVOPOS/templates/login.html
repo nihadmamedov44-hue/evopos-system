@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="az">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>EVOPOS - Giriş</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+
+        body {
+
+            margin: 0;
+
+            min-height: 100vh;
+
+            font-family:
+                Arial,
+                sans-serif;
+
+            background: #f3f6f8;
+
+            display: flex;
+
+            justify-content: center;
+
+            align-items: center;
+
+        }
+
+
+        .login-box {
+
+            width: 380px;
+
+            background: white;
+
+            border-radius: 16px;
+
+            padding: 35px;
+
+            box-shadow:
+                0 8px 30px
+                rgba(0,0,0,0.10);
+
+            text-align: center;
+
+        }
+
+
+        .logo {
+
+            font-size: 32px;
+
+            font-weight: bold;
+
+            color: #1b2a38;
+
+            margin-bottom: 8px;
+
+        }
+
+
+        .subtitle {
+
+            color: #777;
+
+            margin-bottom: 30px;
+
+        }
+
+
+        .pin-display {
+
+            height: 55px;
+
+            border: 2px solid #dfe5e9;
+
+            border-radius: 10px;
+
+            margin-bottom: 20px;
+
+            font-size: 26px;
+
+            letter-spacing: 8px;
+
+            display: flex;
+
+            justify-content: center;
+
+            align-items: center;
+
+        }
+
+
+        .keypad {
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(3, 1fr);
+
+            gap: 10px;
+
+        }
+
+
+        .key {
+
+            height: 58px;
+
+            border: none;
+
+            border-radius: 10px;
+
+            background: #f0f3f5;
+
+            font-size: 21px;
+
+            font-weight: bold;
+
+            cursor: pointer;
+
+        }
+
+
+        .key:hover {
+
+            background: #dfe5e9;
+
+        }
+
+
+        .key.login {
+
+            background: #2ecc71;
+
+            color: white;
+
+        }
+
+
+        .key.delete {
+
+            background: #e74c3c;
+
+            color: white;
+
+        }
+
+
+        .error {
+
+            color: #e74c3c;
+
+            font-size: 14px;
+
+            min-height: 20px;
+
+            margin-bottom: 10px;
+
+        }
+
+
+        @media (max-width: 450px) {
+
+            .login-box {
+
+                width: 90%;
+
+                padding: 25px;
+
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<div class="login-box">
+
+
+    <div class="logo">
+        EVOPOS
+    </div>
+
+
+    <div class="subtitle">
+        Restoran idarəetmə sistemi
+    </div>
+
+
+    <div id="pinDisplay"
+         class="pin-display">
+
+    </div>
+
+
+    <div id="error"
+         class="error">
+
+    </div>
+
+
+    <div class="keypad">
+
+
+        <button class="key"
+                onclick="addNumber('1')">
+            1
+        </button>
+
+
+        <button class="key"
+                onclick="addNumber('2')">
+            2
+        </button>
+
+
+        <button class="key"
+                onclick="addNumber('3')">
+            3
+        </button>
+
+
+        <button class="key"
+                onclick="addNumber('4')">
+            4
+        </button>
+
+
+        <button class="key"
+                onclick="addNumber('5')">
+            5
+        </button>
+
+
+        <button class="key"
+                onclick="addNumber('6')">
+            6
+        </button>
+
+
+        <button class="key"
+                onclick="addNumber('7')">
+            7
+        </button>
+
+
+        <button class="key"
+                onclick="addNumber('8')">
+            8
+        </button>
+
+
+        <button class="key"
+                onclick="addNumber('9')">
+            9
+        </button>
+
+
+        <button class="key delete"
+                onclick="deleteNumber()">
+            ⌫
+        </button>
+
+
+        <button class="key"
+                onclick="addNumber('0')">
+            0
+        </button>
+
+
+        <button class="key login"
+                onclick="login()">
+            ✓
+        </button>
+
+
+    </div>
+
+
+</div>
+
+
+
+<script>
+
+let pin = "";
+
+
+function updateDisplay() {
+
+    document.getElementById(
+        "pinDisplay"
+    ).textContent =
+        "•".repeat(pin.length);
+
+}
+
+
+function addNumber(number) {
+
+    if (pin.length >= 4) {
+
+        return;
+
+    }
+
+
+    pin += number;
+
+    updateDisplay();
+
+
+    if (pin.length === 4) {
+
+        setTimeout(
+            login,
+            150
+        );
+
+    }
+
+}
+
+
+function deleteNumber() {
+
+    pin =
+        pin.slice(
+            0,
+            -1
+        );
+
+    updateDisplay();
+
+}
+
+
+async function login() {
+
+    if (pin.length !== 4) {
+
+        return;
+
+    }
+
+
+    const error =
+        document.getElementById(
+            "error"
+        );
+
+
+    error.textContent = "";
+
+
+    try {
+
+        const response =
+            await fetch(
+                "/login",
+                {
+
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:
+                        JSON.stringify({
+                            pin: pin
+                        })
+
+                }
+            );
+
+
+        const result =
+            await response.json();
+
+
+        if (result.success) {
+
+            window.location.href = "/";
+
+            return;
+
+        }
+
+
+        error.textContent =
+            result.message;
+
+
+        pin = "";
+
+        updateDisplay();
+
+
+    } catch (err) {
+
+        error.textContent =
+            "Serverə qoşulmaq mümkün olmadı.";
+
+        pin = "";
+
+        updateDisplay();
+
+    }
+
+}
+
+</script>
+
+
+</body>
+
+</html>
