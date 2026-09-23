@@ -93,13 +93,19 @@ class CompatCursor:
         if USE_POSTGRES:
             sql = sql.replace("?", "%s")
         if params is None:
-            return self.raw_cursor.execute(sql)
-        return self.raw_cursor.execute(sql, params)
+            self.raw_cursor.execute(sql)
+        else:
+            self.raw_cursor.execute(sql, params)
+        # SQLite və PostgreSQL cursor davranışını eyniləşdiririk:
+        # execute() öz cursor wrapper-ini qaytarır ki,
+        # .fetchone() / .fetchall() zəncirvari istifadə oluna bilsin.
+        return self
 
     def executemany(self, sql, seq_of_params):
         if USE_POSTGRES:
             sql = sql.replace("?", "%s")
-        return self.raw_cursor.executemany(sql, seq_of_params)
+        self.raw_cursor.executemany(sql, seq_of_params)
+        return self
 
     @property
     def lastrowid(self):
