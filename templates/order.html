@@ -1369,12 +1369,89 @@ async function sendOrder() {
         }));
 
 
+    /*
+       Vacib:
+       Mətbəxdə sifariş Tamamlandı olduqdan sonra
+       bu səhifə açıq qalıbsa currentOrderId köhnə
+       sifarişin ID-sini saxlaya bilər.
+
+       Göndərməzdən əvvəl sifarişin həqiqətən aktiv
+       olub-olmadığını serverdən yoxlayırıq.
+    */
+
+    let wasNewOrder = !currentOrderId;
+
+
     try {
+
+        if (currentOrderId) {
+
+            const checkResponse =
+                await fetch(
+                    `/api/order/${currentOrderId}`
+                );
+
+
+            if (checkResponse.ok) {
+
+                const checkData =
+                    await checkResponse.json();
+
+
+                if (
+                    !checkData.success ||
+                    !checkData.order ||
+                    checkData.order.status === "Tamamlandı"
+                ) {
+
+                    /*
+                       Köhnə sifariş tamamlanıb.
+                       Artıq onu update etməyəcəyik.
+                       Yeni sifariş yaradılacaq.
+                    */
+
+                    currentOrderId = null;
+
+                    wasNewOrder = true;
+
+                    cart = [];
+
+                    /*
+                       Aşağıda göndərəcəyimiz items dəyişəni
+                       əvvəlcədən hazırlandığı üçün cart-ı burada
+                       boşaltmaq lazım deyil. Buna görə əvvəlki
+                       məhsulları geri qaytarırıq.
+                    */
+
+                    cart = items.map(item => ({
+
+                        id: null,
+
+                        name: item.name,
+
+                        price: Number(item.price),
+
+                        quantity: Number(item.quantity)
+
+                    }));
+
+                }
+
+            } else {
+
+                currentOrderId = null;
+
+                wasNewOrder = true;
+
+            }
+
+        }
+
 
         let response;
 
 
-        /* Mövcud sifarişdirsə yenilə */
+        /* Mövcud aktiv sifarişdirsə yenilə */
 
         if (currentOrderId) {
 
@@ -1441,10 +1518,14 @@ async function sendOrder() {
         }
 
 
+        /*
+           Yeni sifariş yaradılıbsa yeni ID-ni götür.
+        */
+
         if (!currentOrderId) {
 
             currentOrderId =
-                data.order_id;
+                Number(data.order_id);
 
         }
 
@@ -1474,10 +1555,15 @@ async function sendOrder() {
         ).disabled = false;
 
 
+        /*
+           Yeni sifariş və mövcud sifariş üçün
+           düzgün mesaj göstər.
+        */
+
         alert(
-            currentOrderId
-                ? "Sifariş yadda saxlanıldı."
-                : "Sifariş göndərildi."
+            wasNewOrder
+                ? "Sifariş göndərildi."
+                : "Sifariş yadda saxlanıldı."
         );
 
 

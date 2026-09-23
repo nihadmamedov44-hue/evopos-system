@@ -1,1218 +1,205 @@
 <!DOCTYPE html>
 <html lang="az">
-
 <head>
-
-    <meta charset="UTF-8">
-
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
-
-    <title>EVOPOS - Hesabat</title>
-
-    <link rel="stylesheet"
-          href="{{ url_for('static', filename='style.css') }}">
-
-    <style>
-
-        .reports-page {
-            min-height: 100vh;
-            padding: 30px;
-            background: #f4f6f8;
-            box-sizing: border-box;
-        }
-
-        /* HEADER */
-
-        .reports-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 20px;
-            margin-bottom: 25px;
-            flex-wrap: wrap;
-        }
-
-        .reports-title h1 {
-            margin: 0;
-            font-size: 29px;
-            color: #1f2933;
-        }
-
-        .reports-title p {
-            margin: 7px 0 0;
-            color: #7b8794;
-            font-size: 14px;
-        }
-
-        .refresh-button {
-            border: none;
-            background: #1b2a38;
-            color: white;
-            padding: 11px 18px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-
-        .refresh-button:hover {
-            background: #263b4d;
-        }
-
-        /* MAIN SALES CARDS */
-
-        .sales-grid {
-            display: grid;
-            grid-template-columns:
-                repeat(4, minmax(0, 1fr));
-            gap: 18px;
-            margin-bottom: 20px;
-        }
-
-        .sales-card {
-            background: white;
-            border-radius: 13px;
-            padding: 20px;
-            box-shadow:
-                0 2px 10px rgba(0,0,0,.05);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .sales-card-icon {
-            width: 45px;
-            height: 45px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 23px;
-            background: #eef3f7;
-            margin-bottom: 15px;
-        }
-
-        .sales-card-label {
-            color: #7b8794;
-            font-size: 13px;
-            margin-bottom: 7px;
-        }
-
-        .sales-card-value {
-            color: #1f2933;
-            font-size: 25px;
-            font-weight: bold;
-        }
-
-        .sales-card-description {
-            color: #9aa5af;
-            font-size: 12px;
-            margin-top: 7px;
-        }
-
-        /* PAYMENT */
-
-        .payment-grid {
-            display: grid;
-            grid-template-columns:
-                repeat(2, minmax(0, 1fr));
-            gap: 18px;
-            margin-bottom: 20px;
-        }
-
-        .payment-card {
-            background: white;
-            border-radius: 13px;
-            padding: 22px;
-            box-shadow:
-                0 2px 10px rgba(0,0,0,.05);
-        }
-
-        .payment-card-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 18px;
-        }
-
-        .payment-card-title {
-            font-size: 18px;
-            font-weight: bold;
-            color: #1f2933;
-        }
-
-        .payment-card-icon {
-            font-size: 27px;
-        }
-
-        .payment-amount {
-            font-size: 28px;
-            font-weight: bold;
-            color: #1f2933;
-        }
-
-        .payment-subtitle {
-            margin-top: 7px;
-            color: #7b8794;
-            font-size: 13px;
-        }
-
-        /* ORDER STATISTICS */
-
-        .order-stat-grid {
-            display: grid;
-            grid-template-columns:
-                repeat(3, minmax(0, 1fr));
-            gap: 18px;
-            margin-bottom: 20px;
-        }
-
-        .order-stat-card {
-            background: white;
-            border-radius: 13px;
-            padding: 20px;
-            box-shadow:
-                0 2px 10px rgba(0,0,0,.05);
-        }
-
-        .order-stat-title {
-            color: #7b8794;
-            font-size: 13px;
-            margin-bottom: 8px;
-        }
-
-        .order-stat-number {
-            font-size: 28px;
-            font-weight: bold;
-            color: #1f2933;
-        }
-
-        /* RECENT ORDERS */
-
-        .recent-section {
-            background: white;
-            border-radius: 13px;
-            box-shadow:
-                0 2px 10px rgba(0,0,0,.05);
-            overflow: hidden;
-        }
-
-        .recent-header {
-            padding: 20px;
-            border-bottom: 1px solid #edf0f2;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .recent-title {
-            font-size: 19px;
-            font-weight: bold;
-            color: #1f2933;
-        }
-
-        .recent-subtitle {
-            color: #7b8794;
-            font-size: 12px;
-        }
-
-        .recent-table-container {
-            overflow-x: auto;
-        }
-
-        .recent-table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 800px;
-        }
-
-        .recent-table th {
-            background: #f7f9fa;
-            color: #52606d;
-            font-size: 12px;
-            text-align: left;
-            padding: 14px 16px;
-            border-bottom: 1px solid #e5e9ec;
-        }
-
-        .recent-table td {
-            padding: 14px 16px;
-            font-size: 13px;
-            color: #323f4b;
-            border-bottom: 1px solid #edf0f2;
-        }
-
-        .recent-table tr:hover td {
-            background: #fafbfc;
-        }
-
-        .order-number {
-            color: #1976d2;
-            font-weight: bold;
-        }
-
-        .order-total {
-            font-weight: bold;
-        }
-
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 6px 10px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: bold;
-        }
-
-        .status-completed {
-            background: #e8f5e9;
-            color: #2e7d32;
-        }
-
-        .status-active {
-            background: #fff3e0;
-            color: #ef6c00;
-        }
-
-        .payment-badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 6px 10px;
-            background: #f1f5f8;
-            border-radius: 20px;
-            font-size: 11px;
-        }
-
-        .receipt-button {
-            border: none;
-            background: #7b1fa2;
-            color: white;
-            padding: 7px 11px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 11px;
-        }
-
-        .receipt-button:hover {
-            background: #6a1b86;
-        }
-
-        /* EMPTY */
-
-        .empty-reports {
-            padding: 60px 20px;
-            text-align: center;
-            color: #7b8794;
-        }
-
-        .empty-icon {
-            font-size: 50px;
-            margin-bottom: 10px;
-        }
-
-        /* LOADING */
-
-        .loading {
-            padding: 50px;
-            text-align: center;
-            color: #7b8794;
-        }
-
-        .error {
-            padding: 40px;
-            text-align: center;
-            color: #c0392b;
-        }
-
-        /* RESPONSIVE */
-
-        @media (max-width: 1100px) {
-
-            .sales-grid {
-                grid-template-columns:
-                    repeat(2, minmax(0, 1fr));
-            }
-
-            .order-stat-grid {
-                grid-template-columns:
-                    repeat(3, minmax(0, 1fr));
-            }
-
-        }
-
-        @media (max-width: 700px) {
-
-            .reports-page {
-                padding: 15px;
-            }
-
-            .sales-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .payment-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .order-stat-grid {
-                grid-template-columns: 1fr;
-            }
-
-        }
-
-    </style>
-
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EVOPOS - Günlük Hesabat</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f4f6f8;color:#1f2933}
+.reports-page{min-height:100vh;padding:28px}
+.header{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap;margin-bottom:22px}
+.header h1{margin:0;font-size:29px}
+.header p{margin:6px 0 0;color:#7b8794}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+button{border:0;border-radius:8px;padding:11px 16px;cursor:pointer;font-weight:bold}
+.refresh{background:#1f2937;color:white}
+.close-day{background:#b91c1c;color:white}
+.print{background:#166534;color:white}
+.info-grid,.money-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-bottom:18px}
+.card{background:white;border-radius:13px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,.05)}
+.label{font-size:13px;color:#7b8794;margin-bottom:8px}
+.value{font-size:25px;font-weight:bold}
+.sub{font-size:12px;color:#9aa5af;margin-top:7px}
+.section{background:white;border-radius:13px;margin-bottom:18px;box-shadow:0 2px 10px rgba(0,0,0,.05);overflow:hidden}
+.section-head{padding:18px 20px;border-bottom:1px solid #edf0f2;display:flex;justify-content:space-between;align-items:center}
+.section-title{font-size:19px;font-weight:bold}
+.table-wrap{overflow:auto}
+table{width:100%;border-collapse:collapse;min-width:600px}
+th{background:#f7f9fa;text-align:left;padding:12px 15px;font-size:12px;color:#52606d}
+td{padding:12px 15px;border-bottom:1px solid #edf0f2;font-size:13px}
+.total-row{font-weight:bold;background:#fafafa}
+.badge{display:inline-block;padding:5px 9px;border-radius:20px;font-size:11px;font-weight:bold;background:#e8f5e9;color:#2e7d32}
+.empty{padding:30px;text-align:center;color:#7b8794}
+.history-link{color:#1976d2;text-decoration:none;font-weight:bold}
+.status-open{color:#166534;font-weight:bold}
+.status-closed{color:#991b1b;font-weight:bold}
+@media(max-width:900px){.info-grid,.money-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.reports-page{padding:15px}.info-grid,.money-grid{grid-template-columns:1fr}.header h1{font-size:24px}.actions{width:100%}.actions button{flex:1}}
+@media print{body{background:white}.sidebar,.actions{display:none!important}.main-content{margin:0!important}.reports-page{padding:0}.card,.section{box-shadow:none;border:1px solid #ddd;break-inside:avoid}}
+</style>
 </head>
-
-
 <body>
-
 <div class="app-container">
-
-    {% include 'sidebar.html' %}
-
-
-    <main class="main-content">
-
-        <div class="reports-page">
-
-
-            <!-- HEADER -->
-
-            <div class="reports-header">
-
-                <div class="reports-title">
-
-                    <h1>
-                        📊 Hesabat
-                    </h1>
-
-                    <p>
-                        Restoranın satış və sifariş statistikası
-                    </p>
-
-                </div>
-
-
-                <button
-                    class="refresh-button"
-                    onclick="loadReports()">
-
-                    🔄 Yenilə
-
-                </button>
-
-            </div>
-
-
-            <!-- SATIŞ KARTLARI -->
-
-            <div class="sales-grid">
-
-
-                <div class="sales-card">
-
-                    <div class="sales-card-icon">
-                        💰
-                    </div>
-
-                    <div class="sales-card-label">
-                        Ümumi satış
-                    </div>
-
-                    <div
-                        id="totalSales"
-                        class="sales-card-value">
-
-                        0.00 ₼
-
-                    </div>
-
-                    <div class="sales-card-description">
-                        Bütün tamamlanmış sifarişlər
-                    </div>
-
-                </div>
-
-
-                <div class="sales-card">
-
-                    <div class="sales-card-icon">
-                        📅
-                    </div>
-
-                    <div class="sales-card-label">
-                        Bugünkü satış
-                    </div>
-
-                    <div
-                        id="todaySales"
-                        class="sales-card-value">
-
-                        0.00 ₼
-
-                    </div>
-
-                    <div class="sales-card-description">
-                        Bu gün tamamlanan satışlar
-                    </div>
-
-                </div>
-
-
-                <div class="sales-card">
-
-                    <div class="sales-card-icon">
-                        💵
-                    </div>
-
-                    <div class="sales-card-label">
-                        Nağd satış
-                    </div>
-
-                    <div
-                        id="cashSales"
-                        class="sales-card-value">
-
-                        0.00 ₼
-
-                    </div>
-
-                    <div class="sales-card-description">
-                        Nağd ödənişlər
-                    </div>
-
-                </div>
-
-
-                <div class="sales-card">
-
-                    <div class="sales-card-icon">
-                        💳
-                    </div>
-
-                    <div class="sales-card-label">
-                        Kart satış
-                    </div>
-
-                    <div
-                        id="cardSales"
-                        class="sales-card-value">
-
-                        0.00 ₼
-
-                    </div>
-
-                    <div class="sales-card-description">
-                        Kart ödənişləri
-                    </div>
-
-                </div>
-
-
-            </div>
-
-
-            <!-- ÖDƏNİŞ STATİSTİKASI -->
-
-            <div class="payment-grid">
-
-
-                <div class="payment-card">
-
-                    <div class="payment-card-header">
-
-                        <div class="payment-card-title">
-                            💵 Nağd ödənişlər
-                        </div>
-
-                        <div class="payment-card-icon">
-                            💰
-                        </div>
-
-                    </div>
-
-                    <div
-                        id="todayCashSales"
-                        class="payment-amount">
-
-                        0.00 ₼
-
-                    </div>
-
-                    <div class="payment-subtitle">
-                        Bugünkü nağd satış
-                    </div>
-
-                </div>
-
-
-                <div class="payment-card">
-
-                    <div class="payment-card-header">
-
-                        <div class="payment-card-title">
-                            💳 Kart ödənişləri
-                        </div>
-
-                        <div class="payment-card-icon">
-                            💳
-                        </div>
-
-                    </div>
-
-                    <div
-                        id="todayCardSales"
-                        class="payment-amount">
-
-                        0.00 ₼
-
-                    </div>
-
-                    <div class="payment-subtitle">
-                        Bugünkü kart satış
-                    </div>
-
-                </div>
-
-
-            </div>
-
-
-            <!-- SİFARİŞ STATİSTİKASI -->
-
-            <div class="order-stat-grid">
-
-
-                <div class="order-stat-card">
-
-                    <div class="order-stat-title">
-                        📋 Ümumi sifariş
-                    </div>
-
-                    <div
-                        id="totalOrders"
-                        class="order-stat-number">
-
-                        0
-
-                    </div>
-
-                </div>
-
-
-                <div class="order-stat-card">
-
-                    <div class="order-stat-title">
-                        🟢 Aktiv sifariş
-                    </div>
-
-                    <div
-                        id="activeOrders"
-                        class="order-stat-number">
-
-                        0
-
-                    </div>
-
-                </div>
-
-
-                <div class="order-stat-card">
-
-                    <div class="order-stat-title">
-                        ✅ Tamamlanmış sifariş
-                    </div>
-
-                    <div
-                        id="completedOrders"
-                        class="order-stat-number">
-
-                        0
-
-                    </div>
-
-                </div>
-
-
-            </div>
-
-
-            <!-- SON SİFARİŞLƏR -->
-
-            <section class="recent-section">
-
-                <div class="recent-header">
-
-                    <div>
-
-                        <div class="recent-title">
-                            🧾 Son sifarişlər
-                        </div>
-
-                        <div class="recent-subtitle">
-                            Son 10 sifariş
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-                <div
-                    id="recentOrdersContainer"
-                    class="recent-table-container">
-
-                    <div class="loading">
-                        Hesabat yüklənir...
-                    </div>
-
-                </div>
-
-            </section>
-
-
-        </div>
-
-    </main>
-
+{% include 'sidebar.html' %}
+<main class="main-content">
+<div class="reports-page">
+
+<div class="header">
+<div>
+<h1>📊 Günlük Hesabat</h1>
+<p id="workDate">Yüklənir...</p>
+</div>
+<div class="actions">
+<button class="refresh" onclick="loadReports()">🔄 Yenilə</button>
+<button class="print" onclick="printCurrent()">🖨️ Hesabatı çap et</button>
+<button class="close-day" onclick="closeDay()">🔒 Günü bağla</button>
+</div>
 </div>
 
+<div class="info-grid">
+<div class="card"><div class="label">🟢 Sistem açılıb</div><div id="openedAt" class="value">—</div><div class="sub">Günün başlanğıcı</div></div>
+<div class="card"><div class="label">🔴 Sistem bağlanıb</div><div id="closedAt" class="value">—</div><div class="sub">Gün bağlananda yazılır</div></div>
+<div class="card"><div class="label">📋 Sifariş sayı</div><div id="orderCount" class="value">0</div><div class="sub">Tamamlanmış sifarişlər</div></div>
+<div class="card"><div class="label">💰 Dövriyyə</div><div id="totalSales" class="value">0.00 ₼</div><div class="sub">Günün ümumi satışı</div></div>
+</div>
+
+<div class="money-grid">
+<div class="card"><div class="label">💵 Nağd</div><div id="cashSales" class="value">0.00 ₼</div><div class="sub" id="cashCount">0 ödəniş</div></div>
+<div class="card"><div class="label">💳 Kart</div><div id="cardSales" class="value">0.00 ₼</div><div class="sub" id="cardCount">0 ödəniş</div></div>
+<div class="card"><div class="label">🧾 Orta çek</div><div id="averageOrder" class="value">0.00 ₼</div><div class="sub">Sifariş başına orta məbləğ</div></div>
+<div class="card"><div class="label">⚠️ Ödənilməmiş/Ləğv</div><div id="unpaid" class="value">0</div><div class="sub">Ödənilməmiş sifariş</div></div>
+</div>
+
+<section class="section">
+<div class="section-head"><div class="section-title">🍽️ Satılan məhsullar</div></div>
+<div class="table-wrap" id="productsContainer"><div class="empty">Yüklənir...</div></div>
+</section>
+
+<section class="section">
+<div class="section-head"><div class="section-title">👨‍💼 Ofisiant statistikası</div></div>
+<div class="table-wrap" id="waitersContainer"><div class="empty">Yüklənir...</div></div>
+</section>
+
+<section class="section">
+<div class="section-head"><div class="section-title">🪑 Masalar</div></div>
+<div class="table-wrap" id="tablesContainer"><div class="empty">Yüklənir...</div></div>
+</section>
+
+<section class="section">
+<div class="section-head"><div><div class="section-title">🗂️ Bağlanmış günlər</div><div class="sub">Əvvəlki günlük hesabatlara baxa bilərsiniz.</div></div></div>
+<div class="table-wrap" id="historyContainer"><div class="empty">Yüklənir...</div></div>
+</section>
+
+</div>
+</main>
+</div>
 
 <script>
+let currentShiftId=null;
 
-/* =====================================================
-   HESABATI YÜKLƏ
-===================================================== */
+function money(v){return `${Number(v||0).toFixed(2)} ₼`}
 
-async function loadReports() {
+function dateTime(v){
+    if(!v)return "—";
+    const d=new Date(String(v).replace(" ","T"));
+    if(Number.isNaN(d.getTime()))return String(v);
+    return d.toLocaleString("az-AZ",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"});
+}
 
-    const container =
-        document.getElementById(
-            "recentOrdersContainer"
-        );
+async function loadReports(){
+    try{
+        const r=await fetch("/api/reports");
+        const d=await r.json();
+        if(!r.ok||!d.success)throw new Error(d.message||"Hesabat alınmadı.");
 
+        currentShiftId=d.shift_id;
+        document.getElementById("workDate").textContent=`Tarix: ${d.work_date} • Status: ${d.shift_status}`;
+        document.getElementById("openedAt").textContent=dateTime(d.opened_at);
+        document.getElementById("closedAt").textContent=dateTime(d.closed_at);
+        document.getElementById("orderCount").textContent=d.total_orders||0;
+        document.getElementById("totalSales").textContent=money(d.total_sales);
+        document.getElementById("cashSales").textContent=money(d.cash_sales);
+        document.getElementById("cardSales").textContent=money(d.card_sales);
+        document.getElementById("cashCount").textContent=`${d.cash_count||0} ödəniş`;
+        document.getElementById("cardCount").textContent=`${d.card_count||0} ödəniş`;
+        document.getElementById("averageOrder").textContent=money(d.average_order);
+        document.getElementById("unpaid").textContent=d.unpaid_orders||0;
 
-    try {
-
-        const response =
-            await fetch(
-                "/api/reports"
-            );
-
-
-        if (!response.ok) {
-
-            const errorData =
-                await response
-                    .json()
-                    .catch(() => ({}));
-
-
-            throw new Error(
-                errorData.message ||
-                "Hesabat məlumatları alınmadı."
-            );
-
-        }
-
-
-        const data =
-            await response.json();
-
-
-        if (!data.success) {
-
-            throw new Error(
-                data.message ||
-                "Hesabat məlumatları alınmadı."
-            );
-
-        }
-
-
-        /* =============================================
-           SATIŞLAR
-        ============================================= */
-
-        document.getElementById(
-            "totalSales"
-        ).textContent =
-            formatMoney(
-                data.total_sales
-            );
-
-
-        document.getElementById(
-            "todaySales"
-        ).textContent =
-            formatMoney(
-                data.today_sales
-            );
-
-
-        document.getElementById(
-            "cashSales"
-        ).textContent =
-            formatMoney(
-                data.cash_sales
-            );
-
-
-        document.getElementById(
-            "cardSales"
-        ).textContent =
-            formatMoney(
-                data.card_sales
-            );
-
-
-        /* =============================================
-           BUGÜNKÜ ÖDƏNİŞLƏR
-        ============================================= */
-
-        document.getElementById(
-            "todayCashSales"
-        ).textContent =
-            formatMoney(
-                data.today_cash_sales
-            );
-
-
-        document.getElementById(
-            "todayCardSales"
-        ).textContent =
-            formatMoney(
-                data.today_card_sales
-            );
-
-
-        /* =============================================
-           SİFARİŞLƏR
-        ============================================= */
-
-        document.getElementById(
-            "totalOrders"
-        ).textContent =
-            data.total_orders || 0;
-
-
-        document.getElementById(
-            "activeOrders"
-        ).textContent =
-            data.active_orders || 0;
-
-
-        document.getElementById(
-            "completedOrders"
-        ).textContent =
-            data.completed_orders || 0;
-
-
-        /* =============================================
-           SON SİFARİŞLƏR
-        ============================================= */
-
-        const recent =
-            Array.isArray(data.recent)
-                ? data.recent
-                : [];
-
-
-        renderRecentOrders(
-            recent
-        );
-
-
-    } catch (error) {
-
-        console.error(
-            "Hesabat xətası:",
-            error
-        );
-
-
-        container.innerHTML = `
-
-            <div class="error">
-
-                <h3>
-                    Hesabat yüklənmədi
-                </h3>
-
-                <p>
-                    ${escapeHtml(
-                        error.message
-                    )}
-                </p>
-
-            </div>
-
-        `;
-
+        renderProducts(d.products||[]);
+        renderWaiters(d.waiters||[]);
+        renderTables(d.tables||[]);
+        loadHistory();
+    }catch(e){
+        alert(e.message);
+        console.error(e);
     }
-
 }
 
-
-/* =====================================================
-   SON SİFARİŞLƏR
-===================================================== */
-
-function renderRecentOrders(
-    orders
-) {
-
-    const container =
-        document.getElementById(
-            "recentOrdersContainer"
-        );
-
-
-    if (!orders.length) {
-
-        container.innerHTML = `
-
-            <div class="empty-reports">
-
-                <div class="empty-icon">
-                    📋
-                </div>
-
-                <h3>
-                    Sifariş yoxdur
-                </h3>
-
-                <p>
-                    Hələ heç bir sifariş yaradılmayıb.
-                </p>
-
-            </div>
-
-        `;
-
-        return;
-
-    }
-
-
-    container.innerHTML = `
-
-        <table class="recent-table">
-
-            <thead>
-
-                <tr>
-
-                    <th>
-                        Sifariş
-                    </th>
-
-                    <th>
-                        Masa
-                    </th>
-
-                    <th>
-                        Məbləğ
-                    </th>
-
-                    <th>
-                        Status
-                    </th>
-
-                    <th>
-                        Ödəniş
-                    </th>
-
-                    <th>
-                        Tarix
-                    </th>
-
-                    <th>
-                        Çek
-                    </th>
-
-                </tr>
-
-            </thead>
-
-
-            <tbody>
-
-                ${orders.map(
-                    order => {
-
-                        const isCompleted =
-                            order.status ===
-                            "Tamamlandı";
-
-
-                        return `
-
-                            <tr>
-
-                                <td>
-
-                                    <span class="order-number">
-
-                                        #${order.id}
-
-                                    </span>
-
-                                </td>
-
-
-                                <td>
-
-                                    Masa
-                                    ${order.table_number}
-
-                                </td>
-
-
-                                <td>
-
-                                    <span class="order-total">
-
-                                        ${formatMoney(
-                                            order.total
-                                        )}
-
-                                    </span>
-
-                                </td>
-
-
-                                <td>
-
-                                    ${
-                                        isCompleted
-
-                                        ?
-
-                                        `
-                                        <span
-                                            class="status-badge status-completed">
-
-                                            ✅ Tamamlandı
-
-                                        </span>
-                                        `
-
-                                        :
-
-                                        `
-                                        <span
-                                            class="status-badge status-active">
-
-                                            🟢 ${escapeHtml(
-                                                order.status ||
-                                                "Aktiv"
-                                            )}
-
-                                        </span>
-                                        `
-                                    }
-
-                                </td>
-
-
-                                <td>
-
-                                    <span class="payment-badge">
-
-                                        ${
-                                            order.payment_method ===
-                                            "Nağd"
-
-                                            ? "💵 Nağd"
-
-                                            : order.payment_method ===
-                                              "Kart"
-
-                                            ? "💳 Kart"
-
-                                            : "—"
-                                        }
-
-                                    </span>
-
-                                </td>
-
-
-                                <td>
-
-                                    ${formatDate(
-                                        order.created_at
-                                    )}
-
-                                </td>
-
-
-                                <td>
-
-                                    ${
-                                        isCompleted
-
-                                        ?
-
-                                        `
-                                        <button
-                                            class="receipt-button"
-                                            onclick="openReceipt(
-                                                ${order.id}
-                                            )">
-
-                                            🧾 Aç
-
-                                        </button>
-                                        `
-
-                                        :
-
-                                        "—"
-                                    }
-
-                                </td>
-
-                            </tr>
-
-                        `;
-
-                    }
-                ).join("")}
-
-            </tbody>
-
-        </table>
-
-    `;
-
+function renderProducts(items){
+    const c=document.getElementById("productsContainer");
+    if(!items.length){c.innerHTML='<div class="empty">Bu gün hələ satış yoxdur.</div>';return}
+    let totalQty=0,total=0;
+    const rows=items.map(x=>{
+        totalQty+=Number(x.quantity||0);total+=Number(x.amount||0);
+        return `<tr><td>${esc(x.name)}</td><td>${x.quantity}</td><td>${money(x.amount)}</td></tr>`;
+    }).join("");
+    c.innerHTML=`<table><thead><tr><th>Məhsul</th><th>Ədəd</th><th>Məbləğ</th></tr></thead><tbody>${rows}<tr class="total-row"><td>Ümumi</td><td>${totalQty}</td><td>${money(total)}</td></tr></tbody></table>`;
 }
 
-
-/* =====================================================
-   PUL FORMAT
-===================================================== */
-
-function formatMoney(
-    value
-) {
-
-    const number =
-        Number(value || 0);
-
-
-    return `${number.toFixed(2)} ₼`;
-
+function renderWaiters(items){
+    const c=document.getElementById("waitersContainer");
+    if(!items.length){c.innerHTML='<div class="empty">Bu gün tamamlanmış sifariş yoxdur.</div>';return}
+    const rows=items.map(x=>`<tr><td><strong>${esc(x.name)}</strong></td><td>${x["tables"]}</td><td>${x["orders"]}</td><td>${x["items"]}</td><td>${money(x.sales)}</td></tr>`).join("");
+    c.innerHTML=`<table><thead><tr><th>Ofisiant</th><th>Baxdığı masa</th><th>Sifariş</th><th>Məhsul ədədi</th><th>Dövriyyə</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
-
-/* =====================================================
-   TARİX FORMAT
-===================================================== */
-
-function formatDate(
-    value
-) {
-
-    if (!value) {
-
-        return "—";
-
-    }
-
-
-    const date =
-        new Date(
-            String(value)
-                .replace(" ", "T")
-        );
-
-
-    if (
-        isNaN(
-            date.getTime()
-        )
-    ) {
-
-        return escapeHtml(
-            String(value)
-        );
-
-    }
-
-
-    return date.toLocaleString(
-        "az-AZ",
-        {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit"
-        }
-    );
-
+function renderTables(items){
+    const c=document.getElementById("tablesContainer");
+    if(!items.length){c.innerHTML='<div class="empty">Masa üzrə satış yoxdur.</div>';return}
+    const rows=items.map(x=>`<tr><td>Masa ${x.table}</td><td>${esc(x.waiter)}</td><td>${x["orders"]}</td><td>${money(x.sales)}</td></tr>`).join("");
+    c.innerHTML=`<table><thead><tr><th>Masa</th><th>Ofisiant</th><th>Sifariş sayı</th><th>Dövriyyə</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
-
-/* =====================================================
-   ÇEK
-===================================================== */
-
-function openReceipt(
-    orderId
-) {
-
-    window.open(
-        `/receipt/${orderId}`,
-        "_blank"
-    );
-
+async function loadHistory(){
+    try{
+        const r=await fetch("/api/reports/history");
+        const rows=await r.json();
+        const c=document.getElementById("historyContainer");
+        if(!Array.isArray(rows)||!rows.length){c.innerHTML='<div class="empty">Hələ bağlanmış gün yoxdur.</div>';return}
+        c.innerHTML=`<table><thead><tr><th>Tarix</th><th>Açılış</th><th>Bağlanış</th><th>Status</th><th>Hesabat</th></tr></thead><tbody>${
+            rows.map(x=>`<tr><td>${esc(x.work_date)}</td><td>${dateTime(x.opened_at)}</td><td>${dateTime(x.closed_at)}</td><td>${x.status==="Bağlı"?'<span class="status-closed">Bağlı</span>':'<span class="status-open">Açıq</span>'}</td><td>${x.status==="Bağlı"?`<a class="history-link" target="_blank" href="/daily-report/${x.id}">🧾 Aç</a>`:"—"}</td></tr>`).join("")
+        }</tbody></table>`;
+    }catch(e){console.error(e)}
 }
 
+async function closeDay(){
+    const ok=confirm("Günü bağlamaq istəyirsiniz?\n\nHesabat yaradılacaq və gün bağlanacaq. Aktiv və ödənilməmiş sifariş varsa, sistem günü bağlamayacaq.");
+    if(!ok)return;
+    try{
+        const r=await fetch("/api/reports/close-day",{method:"POST",headers:{"Content-Type":"application/json"}});
+        const d=await r.json();
+        if(!r.ok||!d.success){alert(d.message||"Gün bağlanmadı.");return}
+        alert("Gün uğurla bağlandı.");
+        window.open(`/daily-report/${d.shift_id}`,"_blank");
+        loadReports();
+    }catch(e){alert("Xəta baş verdi.");console.error(e)}
+}
 
-/* =====================================================
-   HTML TƏHLÜKƏSİZLİYİ
-===================================================== */
+function printCurrent(){
+    if(!currentShiftId){alert("Hesabat hazır deyil.");return}
+    window.open(`/daily-report/${currentShiftId}`,"_blank");
+}
 
-function escapeHtml(
-    value
-) {
-
-    const div =
-        document.createElement(
-            "div"
-        );
-
-
-    div.textContent =
-        value ?? "";
-
-
+function esc(v){
+    const div=document.createElement("div");
+    div.textContent=v??"";
     return div.innerHTML;
-
 }
-
-
-/* =====================================================
-   BAŞLANĞIC
-===================================================== */
 
 loadReports();
-
-
-/* =====================================================
-   AVTOMATİK YENİLƏNMƏ
-===================================================== */
-
-setInterval(
-    loadReports,
-    10000
-);
-
+setInterval(loadReports,10000);
 </script>
-
 </body>
-
 </html>

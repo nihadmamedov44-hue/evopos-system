@@ -13,7 +13,10 @@ import webbrowser
 import threading
 import subprocess
 import shutil
+import webview
 import sqlite3
+import json
+import atexit
 from datetime import datetime
 
 
@@ -35,7 +38,9 @@ app = Flask(
     static_folder=STATIC_DIR
 )
 
-app.secret_key = "evopos-secret-key-2026"
+app.secret_key = os.urandom(32)
+# Hər dəfə EVOPOS serveri yenidən başladıqda əvvəlki login sessiyaları
+# avtomatik etibarsız olur və yenidən PIN tələb edilir.
 
 
 DATABASE = "database.db"
@@ -198,6 +203,87 @@ def init_database():
             ADD COLUMN paid_at TEXT
         """)
 
+    # =====================================================
+    # MƏTBƏX STATUSU
+    # =====================================================
+
+    if "kitchen_status" not in column_names:
+
+        cursor.execute("""
+            ALTER TABLE orders
+            ADD COLUMN kitchen_status TEXT DEFAULT 'Yeni'
+        """)
+
+        cursor.execute("""
+            UPDATE orders
+            SET kitchen_status =
+                CASE
+                    WHEN status = 'Tamamlandı' THEN 'Tamamlandı'
+                    ELSE 'Yeni'
+                END
+        """)
+
+    # =====================================================
+    # OFİSİANT
+    # =====================================================
+
+    if "waiter_name" not in column_names:
+
+        cursor.execute("""
+            ALTER TABLE orders
+            ADD COLUMN waiter_name TEXT
+        """)
+
+
+    # =====================================================
+    # GÜNLÜK NÖVBƏ / HESABAT
+    # =====================================================
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS daily_shifts (
+
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+            work_date TEXT NOT NULL,
+
+            opened_at TEXT NOT NULL,
+
+            closed_at TEXT,
+
+            status TEXT DEFAULT 'Açıq',
+
+            report_json TEXT
+
+        )
+    """)
+
+    today = datetime.now().strftime("%Y-%m-%d")
+
+    open_shift = cursor.execute("""
+        SELECT id
+        FROM daily_shifts
+        WHERE work_date = ?
+        AND status = 'Açıq'
+        ORDER BY id DESC
+        LIMIT 1
+    """, (today,)).fetchone()
+
+    if not open_shift:
+
+        cursor.execute("""
+            INSERT INTO daily_shifts
+            (
+                work_date,
+                opened_at,
+                status
+            )
+            VALUES (?, ?, ?)
+        """, (
+            today,
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "Açıq"
+        ))
+
 
     # =====================================================
     # DEFAULT MƏHSULLAR
@@ -355,9 +441,12 @@ def check_login():
                 }), 403
 
 
-        # Hesabat API
+        # Hesabat API və günlük hesabat səhifələri
 
-        if request.path == "/api/reports":
+        if (
+            request.path.startswith("/api/reports")
+            or request.path.startswith("/daily-report")
+        ):
 
             return jsonify({
                 "success": False,
@@ -408,7 +497,7 @@ def login():
 
     session["user"] = USERS[pin]
 
-    session.permanent = True
+    session.permanent = False
 
 
     return jsonify({
@@ -985,21 +1074,25 @@ def create_order():
 
     cursor.execute(
         """
-        INSERT INTO orders
+                INSERT INTO orders
         (
             table_number,
             total,
             status,
-            created_at
+            kitchen_status,
+            created_at,
+            waiter_name
         )
 
-        VALUES (?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?)
         """,
-        (
+                (
             table_number,
             total,
             "Yeni",
-            created_at
+            "Yeni",
+            created_at,
+            session.get("user", {}).get("name", "Naməlum")
         )
     )
 
@@ -1201,17 +1294,6 @@ def update_order(order_id):
         }), 404
 
 
-    if order["status"] == "Tamamlandı":
-
-        connection.close()
-
-        return jsonify({
-            "success": False,
-            "message":
-                "Tamamlanmış sifariş dəyişdirilə bilməz."
-        }), 400
-
-
     total = 0
 
 
@@ -1276,6 +1358,77 @@ def update_order(order_id):
         }), 400
 
 
+    # =====================================================
+    # TAMAMLANMIŞ KÖHNƏ SİFARİŞ
+    # =====================================================
+    # Brauzerdə köhnə sifariş ID-si qalıbsa belə,
+    # tamamlanmış sifarişi dəyişmirik.
+    # Onun əvəzinə həmin masa üçün YENİ sifariş yaradırıq.
+
+    if order["status"] == "Tamamlandı":
+
+        created_at = datetime.now().strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
+
+        cursor.execute(
+            """
+            INSERT INTO orders
+            (
+                table_number,
+                total,
+                status,
+                kitchen_status,
+                created_at,
+                waiter_name
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                order["table_number"],
+                total,
+                "Yeni",
+                "Yeni",
+                created_at,
+                session.get("user", {}).get("name", "Naməlum")
+            )
+        )
+
+        new_order_id = cursor.lastrowid
+
+        for name, price, quantity in clean_items:
+
+            cursor.execute(
+                """
+                INSERT INTO order_items
+                (
+                    order_id,
+                    product_name,
+                    price,
+                    quantity
+                )
+                VALUES (?, ?, ?, ?)
+                """,
+                (
+                    new_order_id,
+                    name,
+                    price,
+                    quantity
+                )
+            )
+
+        connection.commit()
+        connection.close()
+
+        return jsonify({
+            "success": True,
+            "message": "Yeni sifariş yaradıldı.",
+            "order_id": new_order_id,
+            "total": total,
+            "new_order": True
+        })
+
+
     # Köhnə məhsulları sil
 
     cursor.execute(
@@ -1314,7 +1467,7 @@ def update_order(order_id):
 
     cursor.execute(
         """
-        UPDATE orders
+               UPDATE orders
 
         SET total = ?
 
@@ -1390,22 +1543,18 @@ def delete_order(order_id):
         return jsonify({
             "success": False,
             "message":
-                "Tamamlanmış sifariş silinə bilməz."
+                "Tamamlanmış sifariş ləğv edilə bilməz."
         }), 400
 
 
+    # Sifarişi silmirik.
+    # Günlük hesabat üçün ləğv tarixçəsini saxlayırıq.
     cursor.execute(
         """
-        DELETE FROM order_items
-        WHERE order_id = ?
-        """,
-        (order_id,)
-    )
-
-
-    cursor.execute(
-        """
-        DELETE FROM orders
+        UPDATE orders
+        SET
+            status = 'Ləğv edildi',
+            kitchen_status = 'Tamamlandı'
         WHERE id = ?
         """,
         (order_id,)
@@ -1618,6 +1767,27 @@ def get_orders():
 
     cursor = connection.cursor()
 
+    # Sifarişlər yalnız cari açıq günə aid göstərilir.
+    # Gün bağlandıqdan sonra ilk sifariş sorğusunda yeni gün açılır.
+    shift = get_open_shift(connection)
+
+    if not shift:
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        work_date = datetime.now().strftime("%Y-%m-%d")
+
+        cursor.execute("""
+            INSERT INTO daily_shifts
+            (work_date, opened_at, status)
+            VALUES (?, ?, 'Açıq')
+        """, (work_date, now))
+
+        connection.commit()
+
+        shift = cursor.execute("""
+            SELECT *
+            FROM daily_shifts
+            WHERE id = ?
+        """, (cursor.lastrowid,)).fetchone()
 
     orders = cursor.execute(
         """
@@ -1630,12 +1800,15 @@ def get_orders():
             payment_method,
             paid_amount,
             change_amount,
-            paid_at
+            paid_at,
+            waiter_name
 
         FROM orders
+        WHERE created_at >= ?
 
         ORDER BY id DESC
-        """
+        """,
+        (shift["opened_at"],)
     ).fetchall()
 
 
@@ -1670,7 +1843,10 @@ def get_orders():
                 order["change_amount"] or 0,
 
             "paid_at":
-                order["paid_at"]
+                order["paid_at"],
+
+            "waiter_name":
+                order["waiter_name"]
 
         }
 
@@ -1709,7 +1885,7 @@ def get_tables():
 
             WHERE table_number = ?
 
-            AND status != 'Tamamlandı'
+            AND status NOT IN ('Tamamlandı', 'Ləğv edildi')
 
             ORDER BY id DESC
 
@@ -1779,6 +1955,26 @@ def kitchen_orders():
 
     cursor = connection.cursor()
 
+    # Mətbəx də yalnız cari açıq günün sifarişlərini göstərir.
+    shift = get_open_shift(connection)
+
+    if not shift:
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        work_date = datetime.now().strftime("%Y-%m-%d")
+
+        cursor.execute("""
+            INSERT INTO daily_shifts
+            (work_date, opened_at, status)
+            VALUES (?, ?, 'Açıq')
+        """, (work_date, now))
+
+        connection.commit()
+
+        shift = cursor.execute("""
+            SELECT *
+            FROM daily_shifts
+            WHERE id = ?
+        """, (cursor.lastrowid,)).fetchone()
 
     orders = cursor.execute(
         """
@@ -1786,10 +1982,13 @@ def kitchen_orders():
 
         FROM orders
 
-        WHERE status != 'Tamamlandı'
+        WHERE kitchen_status != 'Tamamlandı'
+        AND status != 'Ləğv edildi'
+        AND created_at >= ?
 
         ORDER BY id ASC
-        """
+        """,
+        (shift["opened_at"],)
     ).fetchall()
 
 
@@ -1828,7 +2027,10 @@ def kitchen_orders():
             "total":
                 order["total"] or 0,
 
-            "status":
+                        "status":
+                order["kitchen_status"],
+
+            "payment_status":
                 order["status"],
 
             "created_at":
@@ -1950,7 +2152,7 @@ def update_kitchen_status(order_id):
         """
         UPDATE orders
 
-        SET status = ?
+        SET kitchen_status = ?
 
         WHERE id = ?
         """,
@@ -1973,6 +2175,162 @@ def update_kitchen_status(order_id):
     })
 
 
+
+# =========================================================
+# DAILY REPORT HELPERS
+# =========================================================
+
+def get_open_shift(connection):
+    cursor = connection.cursor()
+
+    return cursor.execute("""
+        SELECT *
+        FROM daily_shifts
+        WHERE status = 'Açıq'
+        ORDER BY id DESC
+        LIMIT 1
+    """).fetchone()
+
+
+def build_daily_report(connection, opened_at, closed_at=None):
+    cursor = connection.cursor()
+
+    end_time = closed_at or datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    completed = cursor.execute("""
+        SELECT
+            COUNT(*) AS order_count,
+            COALESCE(SUM(total), 0) AS sales,
+            COALESCE(SUM(
+                CASE WHEN payment_method = 'Nağd'
+                THEN total ELSE 0 END
+            ), 0) AS cash_sales,
+            COALESCE(SUM(
+                CASE WHEN payment_method = 'Kart'
+                THEN total ELSE 0 END
+            ), 0) AS card_sales
+        FROM orders
+        WHERE status = 'Tamamlandı'
+        AND created_at >= ?
+        AND created_at <= ?
+    """, (opened_at, end_time)).fetchone()
+
+    cancelled = cursor.execute("""
+        SELECT COUNT(*) AS count
+        FROM orders
+        WHERE status = 'Ləğv edildi'
+        AND created_at >= ?
+        AND created_at <= ?
+    """, (opened_at, end_time)).fetchone()
+
+    unpaid = cursor.execute("""
+        SELECT COUNT(*) AS count
+        FROM orders
+        WHERE status != 'Tamamlandı'
+        AND status != 'Ləğv edildi'
+        AND created_at >= ?
+        AND created_at <= ?
+    """, (opened_at, end_time)).fetchone()
+
+    products = cursor.execute("""
+        SELECT
+            oi.product_name,
+            SUM(oi.quantity) AS quantity,
+            SUM(oi.price * oi.quantity) AS amount
+        FROM order_items oi
+        JOIN orders o ON o.id = oi.order_id
+        WHERE o.status = 'Tamamlandı'
+        AND o.created_at >= ?
+        AND o.created_at <= ?
+        GROUP BY oi.product_name
+        ORDER BY quantity DESC, oi.product_name ASC
+    """, (opened_at, end_time)).fetchall()
+
+    waiters = cursor.execute("""
+        SELECT
+            COALESCE(o.waiter_name, 'Naməlum') AS waiter_name,
+            COUNT(DISTINCT o.id) AS order_count,
+            COUNT(DISTINCT o.table_number) AS table_count,
+            COALESCE(SUM(o.total), 0) AS sales,
+            COALESCE(SUM(oi.quantity), 0) AS item_count
+        FROM orders o
+        LEFT JOIN order_items oi ON oi.order_id = o.id
+        WHERE o.status = 'Tamamlandı'
+        AND o.created_at >= ?
+        AND o.created_at <= ?
+        GROUP BY COALESCE(o.waiter_name, 'Naməlum')
+        ORDER BY sales DESC, waiter_name ASC
+    """, (opened_at, end_time)).fetchall()
+
+    tables = cursor.execute("""
+        SELECT
+            o.table_number,
+            COALESCE(o.waiter_name, 'Naməlum') AS waiter_name,
+            COUNT(DISTINCT o.id) AS order_count,
+            COALESCE(SUM(o.total), 0) AS sales
+        FROM orders o
+        WHERE o.status = 'Tamamlandı'
+        AND o.created_at >= ?
+        AND o.created_at <= ?
+        GROUP BY o.table_number, COALESCE(o.waiter_name, 'Naməlum')
+        ORDER BY o.table_number ASC, waiter_name ASC
+    """, (opened_at, end_time)).fetchall()
+
+    payment_counts = cursor.execute("""
+        SELECT
+            COALESCE(SUM(CASE WHEN payment_method = 'Nağd' THEN 1 ELSE 0 END), 0) AS cash_count,
+            COALESCE(SUM(CASE WHEN payment_method = 'Kart' THEN 1 ELSE 0 END), 0) AS card_count
+        FROM orders
+        WHERE status = 'Tamamlandı'
+        AND created_at >= ?
+        AND created_at <= ?
+    """, (opened_at, end_time)).fetchone()
+
+    total_sales = float(completed["sales"] or 0)
+    order_count = int(completed["order_count"] or 0)
+
+    return {
+        "opened_at": opened_at,
+        "closed_at": closed_at,
+        "total_sales": total_sales,
+        "cash_sales": float(completed["cash_sales"] or 0),
+        "card_sales": float(completed["card_sales"] or 0),
+        "total_orders": order_count,
+        "cancelled_orders": int(cancelled["count"] or 0),
+        "unpaid_orders": int(unpaid["count"] or 0),
+        "average_order": (total_sales / order_count) if order_count else 0,
+        "cash_count": int(payment_counts["cash_count"] or 0),
+        "card_count": int(payment_counts["card_count"] or 0),
+        "products": [
+            {
+                "name": row["product_name"],
+                "quantity": int(row["quantity"] or 0),
+                "amount": float(row["amount"] or 0)
+            }
+            for row in products
+        ],
+        "waiters": [
+            {
+                "name": row["waiter_name"],
+                "orders": int(row["order_count"] or 0),
+                "tables": int(row["table_count"] or 0),
+                "items": int(row["item_count"] or 0),
+                "sales": float(row["sales"] or 0)
+            }
+            for row in waiters
+        ],
+        "tables": [
+            {
+                "table": int(row["table_number"]),
+                "waiter": row["waiter_name"],
+                "orders": int(row["order_count"] or 0),
+                "sales": float(row["sales"] or 0)
+            }
+            for row in tables
+        ]
+    }
+
+
 # =========================================================
 # REPORTS API
 # =========================================================
@@ -1982,405 +2340,259 @@ def reports_api():
 
     connection = get_db()
 
-    cursor = connection.cursor()
-
-
     try:
+        shift = get_open_shift(connection)
 
-        # =================================================
-        # ÜMUMİ SATIŞ
-        # =================================================
+        if not shift:
+            # Gün bağlanıbsa yeni istifadə sessiyası üçün
+            # yeni növbə açılır.
+            cursor = connection.cursor()
+            now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            work_date = datetime.now().strftime("%Y-%m-%d")
 
-        total_sales_row = cursor.execute(
-            """
-            SELECT
-                COALESCE(
-                    SUM(
-                        CASE
-                            WHEN status = 'Tamamlandı'
-                            THEN total
-                            ELSE 0
-                        END
-                    ),
-                    0
-                ) AS total_sales
+            cursor.execute("""
+                INSERT INTO daily_shifts
+                (work_date, opened_at, status)
+                VALUES (?, ?, 'Açıq')
+            """, (work_date, now))
 
-            FROM orders
-            """
-        ).fetchone()
+            connection.commit()
 
+            shift = cursor.execute("""
+                SELECT *
+                FROM daily_shifts
+                WHERE id = ?
+            """, (cursor.lastrowid,)).fetchone()
 
-        total_sales = float(
-            total_sales_row["total_sales"] or 0
+        report = build_daily_report(
+            connection,
+            shift["opened_at"]
         )
 
+        # Ümumi tarixçə üçün köhnə sahələri də saxlayırıq.
+        cursor = connection.cursor()
 
-        # =================================================
-        # BU GÜNÜN SATIŞI
-        # =================================================
-
-        today_sales_row = cursor.execute(
-            """
-            SELECT
-                COALESCE(
-                    SUM(
-                        CASE
-                            WHEN status = 'Tamamlandı'
-                            THEN total
-                            ELSE 0
-                        END
-                    ),
-                    0
-                ) AS today_sales
-
+        total_sales = cursor.execute("""
+            SELECT COALESCE(SUM(total), 0) AS value
             FROM orders
-
-            WHERE date(created_at) = date('now', 'localtime')
-            """
-        ).fetchone()
-
-
-        today_sales = float(
-            today_sales_row["today_sales"] or 0
-        )
-
-
-        # =================================================
-        # ÜMUMİ SİFARİŞ
-        # =================================================
-
-        total_orders_row = cursor.execute(
-            """
-            SELECT COUNT(*) AS total_orders
-            FROM orders
-            """
-        ).fetchone()
-
-
-        total_orders = int(
-            total_orders_row["total_orders"] or 0
-        )
-
-
-        # =================================================
-        # AKTİV SİFARİŞ
-        # =================================================
-
-        active_orders_row = cursor.execute(
-            """
-            SELECT COUNT(*) AS active_orders
-
-            FROM orders
-
-            WHERE status != 'Tamamlandı'
-            """
-        ).fetchone()
-
-
-        active_orders = int(
-            active_orders_row["active_orders"] or 0
-        )
-
-
-        # =================================================
-        # TAMAMLANAN SİFARİŞ
-        # =================================================
-
-        completed_orders_row = cursor.execute(
-            """
-            SELECT COUNT(*) AS completed_orders
-
-            FROM orders
-
             WHERE status = 'Tamamlandı'
-            """
-        ).fetchone()
+        """).fetchone()["value"]
 
-
-        completed_orders = int(
-            completed_orders_row["completed_orders"] or 0
-        )
-
-
-        # =================================================
-        # BU GÜN TAMAMLANAN
-        # =================================================
-
-        today_completed_row = cursor.execute(
-            """
-            SELECT COUNT(*) AS today_completed
-
-            FROM orders
-
-            WHERE status = 'Tamamlandı'
-
-            AND date(created_at)
-                = date('now', 'localtime')
-            """
-        ).fetchone()
-
-
-        today_completed = int(
-            today_completed_row["today_completed"] or 0
-        )
-
-
-        # =================================================
-        # NAĞD SATIŞ
-        # =================================================
-
-        cash_sales_row = cursor.execute(
-            """
+        recent_orders = cursor.execute("""
             SELECT
-                COALESCE(
-                    SUM(total),
-                    0
-                ) AS cash_sales
-
-            FROM orders
-
-            WHERE status = 'Tamamlandı'
-
-            AND payment_method = 'Nağd'
-            """
-        ).fetchone()
-
-
-        cash_sales = float(
-            cash_sales_row["cash_sales"] or 0
-        )
-
-
-        # =================================================
-        # KART SATIŞ
-        # =================================================
-
-        card_sales_row = cursor.execute(
-            """
-            SELECT
-                COALESCE(
-                    SUM(total),
-                    0
-                ) AS card_sales
-
-            FROM orders
-
-            WHERE status = 'Tamamlandı'
-
-            AND payment_method = 'Kart'
-            """
-        ).fetchone()
-
-
-        card_sales = float(
-            card_sales_row["card_sales"] or 0
-        )
-
-
-        # =================================================
-        # BU GÜN NAĞD
-        # =================================================
-
-        today_cash_sales_row = cursor.execute(
-            """
-            SELECT
-                COALESCE(
-                    SUM(total),
-                    0
-                ) AS today_cash_sales
-
-            FROM orders
-
-            WHERE status = 'Tamamlandı'
-
-            AND payment_method = 'Nağd'
-
-            AND date(created_at)
-                = date('now', 'localtime')
-            """
-        ).fetchone()
-
-
-        today_cash_sales = float(
-            today_cash_sales_row["today_cash_sales"] or 0
-        )
-
-
-        # =================================================
-        # BU GÜN KART
-        # =================================================
-
-        today_card_sales_row = cursor.execute(
-            """
-            SELECT
-                COALESCE(
-                    SUM(total),
-                    0
-                ) AS today_card_sales
-
-            FROM orders
-
-            WHERE status = 'Tamamlandı'
-
-            AND payment_method = 'Kart'
-
-            AND date(created_at)
-                = date('now', 'localtime')
-            """
-        ).fetchone()
-
-
-        today_card_sales = float(
-            today_card_sales_row["today_card_sales"] or 0
-        )
-
-
-        # =================================================
-        # SON ÖDƏNİŞLƏR
-        # =================================================
-
-        recent_orders = cursor.execute(
-            """
-            SELECT
-
                 id,
-
                 table_number,
-
                 total,
-
                 status,
-
                 created_at,
-
                 payment_method,
-
                 paid_amount,
-
                 change_amount,
-
-                paid_at
-
+                paid_at,
+                waiter_name
             FROM orders
-
             ORDER BY id DESC
-
             LIMIT 10
-            """
-        ).fetchall()
+        """).fetchall()
 
-
-        recent = [
-
+        report["shift_id"] = shift["id"]
+        report["work_date"] = shift["work_date"]
+        report["total_sales_all_time"] = float(total_sales or 0)
+        report["shift_status"] = shift["status"]
+        report["recent"] = [
             {
-
-                "id":
-                    order["id"],
-
-                "table_number":
-                    order["table_number"],
-
-                "total":
-                    order["total"] or 0,
-
-                "status":
-                    order["status"],
-
-                "created_at":
-                    order["created_at"],
-
-                "payment_method":
-                    order["payment_method"],
-
-                "paid_amount":
-                    order["paid_amount"] or 0,
-
-                "change_amount":
-                    order["change_amount"] or 0,
-
-                "paid_at":
-                    order["paid_at"]
-
+                "id": row["id"],
+                "table_number": row["table_number"],
+                "total": row["total"] or 0,
+                "status": row["status"],
+                "created_at": row["created_at"],
+                "payment_method": row["payment_method"],
+                "paid_amount": row["paid_amount"] or 0,
+                "change_amount": row["change_amount"] or 0,
+                "paid_at": row["paid_at"],
+                "waiter_name": row["waiter_name"]
             }
-
-            for order in recent_orders
-
+            for row in recent_orders
         ]
 
+        # Köhnə reports.html sahələri
+        report["today_sales"] = report["total_sales"]
+        report["today_cash_sales"] = report["cash_sales"]
+        report["today_card_sales"] = report["card_sales"]
+        report["completed_orders"] = report["total_orders"]
+        report["active_orders"] = report["unpaid_orders"]
+        report["cancelled_or_unpaid"] = report["cancelled_orders"]
 
         connection.close()
 
-
         return jsonify({
-
             "success": True,
-
-            "total_sales":
-                total_sales,
-
-            "today_sales":
-                today_sales,
-
-            "total_orders":
-                total_orders,
-
-            "active_orders":
-                active_orders,
-
-            "completed_orders":
-                completed_orders,
-
-            "today_completed":
-                today_completed,
-
-            "cash_sales":
-                cash_sales,
-
-            "card_sales":
-                card_sales,
-
-            "today_cash_sales":
-                today_cash_sales,
-
-            "today_card_sales":
-                today_card_sales,
-
-            "recent":
-                recent,
-
-            # reports.html müxtəlif adlardan
-            # istifadə edərsə uyğunluq üçün
-
-            "orders":
-                recent,
-
-            "recent_orders":
-                recent
-
+            **report
         })
 
-
     except Exception as error:
-
         connection.close()
 
-        print(
-            "REPORTS API ERROR:",
-            repr(error)
-        )
-
-
         return jsonify({
-
             "success": False,
-
-            "message":
-                "Hesabat məlumatları alınmadı.",
-
-            "error":
-                str(error)
-
+            "message": "Hesabat məlumatları alınmadı.",
+            "error": str(error)
         }), 500
+
+
+# =========================================================
+# DAILY REPORT PRINT
+# =========================================================
+
+@app.route("/daily-report/<int:shift_id>")
+def daily_report_page(shift_id):
+
+    connection = get_db()
+    cursor = connection.cursor()
+
+    shift = cursor.execute("""
+        SELECT *
+        FROM daily_shifts
+        WHERE id = ?
+    """, (shift_id,)).fetchone()
+
+    if not shift:
+        connection.close()
+        return "Günlük hesabat tapılmadı.", 404
+
+    closed_at = shift["closed_at"] or datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    report = build_daily_report(
+        connection,
+        shift["opened_at"],
+        closed_at
+    )
+
+    report["shift_id"] = shift["id"]
+    report["work_date"] = shift["work_date"]
+    report["shift_status"] = shift["status"]
+
+    connection.close()
+
+    return render_template(
+        "daily_report.html",
+        report=report
+    )
+
+
+# =========================================================
+# CLOSE DAY
+# =========================================================
+
+@app.route("/api/reports/close-day", methods=["POST"])
+def close_day():
+
+    user = session.get("user", {})
+
+    if user.get("role") != "Administrator":
+        return jsonify({
+            "success": False,
+            "message": "Günü yalnız Administrator bağlaya bilər."
+        }), 403
+
+    connection = get_db()
+    cursor = connection.cursor()
+
+    shift = get_open_shift(connection)
+
+    if not shift:
+        connection.close()
+        return jsonify({
+            "success": False,
+            "message": "Açıq gün tapılmadı."
+        }), 400
+
+    # Gün bağlananda əvvəlki gündən qalan və ya cari gündə açıq qalan
+    # bütün aktiv sifarişləri yeni günə daşımırıq. Onları tarixçədə
+    # qorumaq üçün "Ləğv edildi" kimi bağlayırıq.
+    # Beləliklə yeni gün başlayanda aktiv sifariş və məşğul masa qalmır.
+    active_rows = cursor.execute("""
+        SELECT id
+        FROM orders
+        WHERE status NOT IN ('Tamamlandı', 'Ləğv edildi')
+    """).fetchall()
+
+    closed_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    if active_rows:
+        cursor.execute("""
+            UPDATE orders
+            SET
+                status = 'Ləğv edildi',
+                kitchen_status = 'Tamamlandı'
+            WHERE status NOT IN ('Tamamlandı', 'Ləğv edildi')
+        """)
+
+    report = build_daily_report(
+        connection,
+        shift["opened_at"],
+        closed_at
+    )
+
+    cursor.execute("""
+        UPDATE daily_shifts
+        SET
+            closed_at = ?,
+            status = 'Bağlı',
+            report_json = ?
+        WHERE id = ?
+    """, (
+        closed_at,
+        json.dumps(report, ensure_ascii=False),
+        shift["id"]
+    ))
+
+    connection.commit()
+
+    connection.close()
+
+    return jsonify({
+        "success": True,
+        "message": "Gün uğurla bağlandı.",
+        "shift_id": shift["id"],
+        "report": report
+    })
+
+
+# =========================================================
+# REPORT HISTORY
+# =========================================================
+
+@app.route("/api/reports/history")
+def report_history():
+
+    connection = get_db()
+    cursor = connection.cursor()
+
+    rows = cursor.execute("""
+        SELECT
+            id,
+            work_date,
+            opened_at,
+            closed_at,
+            status
+        FROM daily_shifts
+        ORDER BY id DESC
+        LIMIT 30
+    """).fetchall()
+
+    connection.close()
+
+    return jsonify([
+        {
+            "id": row["id"],
+            "work_date": row["work_date"],
+            "opened_at": row["opened_at"],
+            "closed_at": row["closed_at"],
+            "status": row["status"]
+        }
+        for row in rows
+    ])
 
 
 # =========================================================
@@ -2396,51 +2608,41 @@ init_database()
 
 if __name__ == "__main__":
 
-    def open_evopos():
+    # =====================================================
+    # EVOPOS DAXİLİ PƏNCƏRƏ
+    # =====================================================
+    # Flask server arxa planda işləyir.
+    # İstifadəçiyə Chrome/Edge açılmır.
+    # EVOPOS öz proqram pəncərəsində açılır.
 
-        url = "http://127.0.0.1:5000"
+    def run_flask():
+        app.run(
+            host="127.0.0.1",
+            port=5000,
+            debug=False,
+            use_reloader=False
+        )
 
-        # Adi sayt kimi aç
-        webbrowser.open(url)
 
-        # Chrome proqram pəncərəsi
-        chrome_paths = [
-            shutil.which("chrome"),
-            os.path.expandvars(
-                r"%ProgramFiles%\Google\Chrome\Application\chrome.exe"
-            ),
-            os.path.expandvars(
-                r"%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe"
-            ),
-            os.path.expandvars(
-                r"%LocalAppData%\Google\Chrome\Application\chrome.exe"
-            )
-        ]
-
-        chrome = None
-
-        for path in chrome_paths:
-
-            if path and os.path.exists(path):
-                chrome = path
-                break
-
-        if chrome:
-
-            subprocess.Popen([
-                chrome,
-                "--app=" + url,
-                "--start-maximized"
-            ])
-
-    threading.Timer(
-        2.0,
-        open_evopos
-    ).start()
-
-    app.run(
-        host="0.0.0.0",
-        port=5000,
-        debug=False,
-        use_reloader=False
+    flask_thread = threading.Thread(
+        target=run_flask,
+        daemon=True
     )
+
+    flask_thread.start()
+
+
+    # Serverin işə düşməsi üçün qısa gözləmə
+    import time
+    time.sleep(1.0)
+
+
+    webview.create_window(
+        "EVOPOS",
+        "http://127.0.0.1:5000",
+        maximized=True,
+        min_size=(1000, 700)
+    )
+
+
+    webview.start()
