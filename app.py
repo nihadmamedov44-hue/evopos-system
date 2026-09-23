@@ -18,6 +18,13 @@ import shutil
 import sqlite3
 import json
 import atexit
+
+DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
+USE_POSTGRES = bool(DATABASE_URL)
+
+if USE_POSTGRES:
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
 from datetime import datetime
 
 
@@ -73,14 +80,75 @@ USERS = {
 # DATABASE
 # =========================================================
 
+DATABASE = "database.db"
+
+
+class CompatCursor:
+    """SQLite və PostgreSQL üçün ortaq cursor."""
+
+    def __init__(self, raw_cursor):
+        self.raw_cursor = raw_cursor
+
+    def execute(self, sql, params=None):
+        if USE_POSTGRES:
+            sql = sql.replace("?", "%s")
+        if params is None:
+            return self.raw_cursor.execute(sql)
+        return self.raw_cursor.execute(sql, params)
+
+    def executemany(self, sql, seq_of_params):
+        if USE_POSTGRES:
+            sql = sql.replace("?", "%s")
+        return self.raw_cursor.executemany(sql, seq_of_params)
+
+    @property
+    def lastrowid(self):
+        if USE_POSTGRES:
+            # PostgreSQL-də SQLite-dəki lastrowid əvəzi.
+            temp_cursor = self.raw_cursor.connection.cursor(
+                cursor_factory=RealDictCursor
+            )
+            temp_cursor.execute("SELECT LASTVAL() AS id")
+            row = temp_cursor.fetchone()
+            temp_cursor.close()
+            return row["id"]
+        return self.raw_cursor.lastrowid
+
+    def __getattr__(self, name):
+        return getattr(self.raw_cursor, name)
+
+
+class CompatConnection:
+    def __init__(self, connection):
+        self.raw_connection = connection
+
+    def cursor(self):
+        if USE_POSTGRES:
+            return CompatCursor(
+                self.raw_connection.cursor(
+                    cursor_factory=RealDictCursor
+                )
+            )
+        return CompatCursor(self.raw_connection.cursor())
+
+    def commit(self):
+        return self.raw_connection.commit()
+
+    def rollback(self):
+        return self.raw_connection.rollback()
+
+    def close(self):
+        return self.raw_connection.close()
+
+
 def get_db():
+    if USE_POSTGRES:
+        return CompatConnection(psycopg2.connect(DATABASE_URL))
+
     database_path = os.path.join(BASE_DIR, "database.db")
-
     connection = sqlite3.connect(database_path)
-
     connection.row_factory = sqlite3.Row
-
-    return connection
+    return CompatConnection(connection)
 
 
 # =========================================================
@@ -90,130 +158,87 @@ def get_db():
 def init_database():
 
     connection = get_db()
-
     cursor = connection.cursor()
 
+    if USE_POSTGRES:
 
-    # -----------------------------------------------------
-    # ORDERS
-    # -----------------------------------------------------
-
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS orders (
-
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-            table_number INTEGER NOT NULL,
-
-            total REAL DEFAULT 0,
-
-            status TEXT DEFAULT 'Yeni',
-
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP
-
-        )
-    """)
-
-
-    # -----------------------------------------------------
-    # ORDER ITEMS
-    # -----------------------------------------------------
-
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS order_items (
-
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-            order_id INTEGER NOT NULL,
-
-            product_name TEXT NOT NULL,
-
-            price REAL NOT NULL,
-
-            quantity INTEGER NOT NULL,
-
-            FOREIGN KEY(order_id)
-            REFERENCES orders(id)
-
-        )
-    """)
-
-
-    # -----------------------------------------------------
-    # PRODUCTS
-    # -----------------------------------------------------
-
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS products (
-
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-            name TEXT NOT NULL,
-
-            price REAL NOT NULL,
-
-            category TEXT NOT NULL
-
-        )
-    """)
-
-
-    # =====================================================
-    # ORDERS SÜTUNLARINI YOXLAYIRIQ
-    # =====================================================
-
-    columns = cursor.execute(
-        "PRAGMA table_info(orders)"
-    ).fetchall()
-
-
-    column_names = [
-        column["name"]
-        for column in columns
-    ]
-
-
-    if "payment_method" not in column_names:
+        # =====================================================
+        # POSTGRESQL
+        # =====================================================
 
         cursor.execute("""
-            ALTER TABLE orders
-            ADD COLUMN payment_method TEXT
+            CREATE TABLE IF NOT EXISTS orders (
+                id SERIAL PRIMARY KEY,
+                table_number INTEGER NOT NULL,
+                total DOUBLE PRECISION DEFAULT 0,
+                status TEXT DEFAULT 'Yeni',
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                payment_method TEXT,
+                paid_amount DOUBLE PRECISION DEFAULT 0,
+                change_amount DOUBLE PRECISION DEFAULT 0,
+                paid_at TEXT,
+                kitchen_status TEXT DEFAULT 'Yeni',
+                waiter_name TEXT
+            )
         """)
-
-
-    if "paid_amount" not in column_names:
 
         cursor.execute("""
-            ALTER TABLE orders
-            ADD COLUMN paid_amount REAL DEFAULT 0
+            CREATE TABLE IF NOT EXISTS order_items (
+                id SERIAL PRIMARY KEY,
+                order_id INTEGER NOT NULL,
+                product_name TEXT NOT NULL,
+                price DOUBLE PRECISION NOT NULL,
+                quantity INTEGER NOT NULL,
+                FOREIGN KEY(order_id) REFERENCES orders(id)
+            )
         """)
-
-
-    if "change_amount" not in column_names:
 
         cursor.execute("""
-            ALTER TABLE orders
-            ADD COLUMN change_amount REAL DEFAULT 0
+            CREATE TABLE IF NOT EXISTS products (
+                id SERIAL PRIMARY KEY,
+                name TEXT NOT NULL,
+                price DOUBLE PRECISION NOT NULL,
+                category TEXT NOT NULL
+            )
         """)
-
-
-    if "paid_at" not in column_names:
 
         cursor.execute("""
-            ALTER TABLE orders
-            ADD COLUMN paid_at TEXT
+            CREATE TABLE IF NOT EXISTS daily_shifts (
+                id SERIAL PRIMARY KEY,
+                work_date TEXT NOT NULL,
+                opened_at TEXT NOT NULL,
+                closed_at TEXT,
+                status TEXT DEFAULT 'Açıq',
+                report_json TEXT
+            )
         """)
 
-    # =====================================================
-    # MƏTBƏX STATUSU
-    # =====================================================
+        # Mövcud PostgreSQL bazası üçün çatışmayan orders sütunları.
+        columns = cursor.execute("""
+            SELECT column_name AS name
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'orders'
+        """).fetchall()
 
-    if "kitchen_status" not in column_names:
+        column_names = {
+            row["name"] for row in columns
+        }
 
-        cursor.execute("""
-            ALTER TABLE orders
-            ADD COLUMN kitchen_status TEXT DEFAULT 'Yeni'
-        """)
+        missing_columns = {
+            "payment_method": "TEXT",
+            "paid_amount": "DOUBLE PRECISION DEFAULT 0",
+            "change_amount": "DOUBLE PRECISION DEFAULT 0",
+            "paid_at": "TEXT",
+            "kitchen_status": "TEXT DEFAULT 'Yeni'",
+            "waiter_name": "TEXT"
+        }
+
+        for name, definition in missing_columns.items():
+            if name not in column_names:
+                cursor.execute(
+                    f"ALTER TABLE orders ADD COLUMN {name} {definition}"
+                )
 
         cursor.execute("""
             UPDATE orders
@@ -222,41 +247,113 @@ def init_database():
                     WHEN status = 'Tamamlandı' THEN 'Tamamlandı'
                     ELSE 'Yeni'
                 END
+            WHERE kitchen_status IS NULL
         """)
 
-    # =====================================================
-    # OFİSİANT
-    # =====================================================
+    else:
 
-    if "waiter_name" not in column_names:
+        # =====================================================
+        # SQLITE — LOKAL EXE ÜÇÜN
+        # =====================================================
 
         cursor.execute("""
-            ALTER TABLE orders
-            ADD COLUMN waiter_name TEXT
+            CREATE TABLE IF NOT EXISTS orders (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                table_number INTEGER NOT NULL,
+                total REAL DEFAULT 0,
+                status TEXT DEFAULT 'Yeni',
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
         """)
 
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS order_items (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                order_id INTEGER NOT NULL,
+                product_name TEXT NOT NULL,
+                price REAL NOT NULL,
+                quantity INTEGER NOT NULL,
+                FOREIGN KEY(order_id) REFERENCES orders(id)
+            )
+        """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS products (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                price REAL NOT NULL,
+                category TEXT NOT NULL
+            )
+        """)
+
+        columns = cursor.execute(
+            "PRAGMA table_info(orders)"
+        ).fetchall()
+
+        column_names = [
+            column["name"] for column in columns
+        ]
+
+        if "payment_method" not in column_names:
+            cursor.execute("""
+                ALTER TABLE orders
+                ADD COLUMN payment_method TEXT
+            """)
+
+        if "paid_amount" not in column_names:
+            cursor.execute("""
+                ALTER TABLE orders
+                ADD COLUMN paid_amount REAL DEFAULT 0
+            """)
+
+        if "change_amount" not in column_names:
+            cursor.execute("""
+                ALTER TABLE orders
+                ADD COLUMN change_amount REAL DEFAULT 0
+            """)
+
+        if "paid_at" not in column_names:
+            cursor.execute("""
+                ALTER TABLE orders
+                ADD COLUMN paid_at TEXT
+            """)
+
+        if "kitchen_status" not in column_names:
+            cursor.execute("""
+                ALTER TABLE orders
+                ADD COLUMN kitchen_status TEXT DEFAULT 'Yeni'
+            """)
+
+        cursor.execute("""
+            UPDATE orders
+            SET kitchen_status =
+                CASE
+                    WHEN status = 'Tamamlandı' THEN 'Tamamlandı'
+                    ELSE 'Yeni'
+                END
+            WHERE kitchen_status IS NULL
+        """)
+
+        if "waiter_name" not in column_names:
+            cursor.execute("""
+                ALTER TABLE orders
+                ADD COLUMN waiter_name TEXT
+            """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS daily_shifts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                work_date TEXT NOT NULL,
+                opened_at TEXT NOT NULL,
+                closed_at TEXT,
+                status TEXT DEFAULT 'Açıq',
+                report_json TEXT
+            )
+        """)
 
     # =====================================================
-    # GÜNLÜK NÖVBƏ / HESABAT
+    # AÇIQ NÖVBƏ
     # =====================================================
-
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS daily_shifts (
-
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-            work_date TEXT NOT NULL,
-
-            opened_at TEXT NOT NULL,
-
-            closed_at TEXT,
-
-            status TEXT DEFAULT 'Açıq',
-
-            report_json TEXT
-
-        )
-    """)
 
     today = datetime.now().strftime("%Y-%m-%d")
 
@@ -270,21 +367,15 @@ def init_database():
     """, (today,)).fetchone()
 
     if not open_shift:
-
         cursor.execute("""
             INSERT INTO daily_shifts
-            (
-                work_date,
-                opened_at,
-                status
-            )
+            (work_date, opened_at, status)
             VALUES (?, ?, ?)
         """, (
             today,
             datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "Açıq"
         ))
-
 
     # =====================================================
     # DEFAULT MƏHSULLAR
@@ -294,75 +385,26 @@ def init_database():
         "SELECT COUNT(*) AS count FROM products"
     ).fetchone()["count"]
 
-
     if product_count == 0:
 
         default_products = [
-
-            (
-                "Hamburger",
-                8.00,
-                "Yeməklər"
-            ),
-
-            (
-                "Pizza",
-                12.00,
-                "Yeməklər"
-            ),
-
-            (
-                "Qril toyuq",
-                10.00,
-                "Yeməklər"
-            ),
-
-            (
-                "Dönər",
-                3.00,
-                "Yeməklər"
-            ),
-
-            (
-                "Əri kartof",
-                4.00,
-                "Yeməklər"
-            ),
-
-            (
-                "Coca-Cola",
-                2.00,
-                "İçkilər"
-            ),
-
-            (
-                "Dondurma",
-                4.00,
-                "Desertlər"
-            ),
-
-            (
-                "Cheesecake",
-                6.00,
-                "Desertlər"
-            )
-
+            ("Hamburger", 8.00, "Yeməklər"),
+            ("Pizza", 12.00, "Yeməklər"),
+            ("Qril toyuq", 10.00, "Yeməklər"),
+            ("Dönər", 3.00, "Yeməklər"),
+            ("Əri kartof", 4.00, "Yeməklər"),
+            ("Coca-Cola", 2.00, "İçkilər"),
+            ("Dondurma", 4.00, "Desertlər"),
+            ("Cheesecake", 6.00, "Desertlər")
         ]
 
-
-        cursor.executemany(
-            """
+        cursor.executemany("""
             INSERT INTO products
             (name, price, category)
-
             VALUES (?, ?, ?)
-            """,
-            default_products
-        )
-
+        """, default_products)
 
     connection.commit()
-
     connection.close()
 
 
