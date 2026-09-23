@@ -11,9 +11,10 @@ import os
 import sys
 import webbrowser
 import threading
+if getattr(sys, "frozen", False):
+    import webview
 import subprocess
 import shutil
-import webview
 import sqlite3
 import json
 import atexit
@@ -2609,40 +2610,48 @@ init_database()
 if __name__ == "__main__":
 
     # =====================================================
-    # EVOPOS DAXİLİ PƏNCƏRƏ
+    # WINDOWS EXE ÜÇÜN DAXİLİ EVOPOS PƏNCƏRƏSİ
     # =====================================================
-    # Flask server arxa planda işləyir.
-    # İstifadəçiyə Chrome/Edge açılmır.
-    # EVOPOS öz proqram pəncərəsində açılır.
 
-    def run_flask():
+    if getattr(sys, "frozen", False):
+
+        def run_flask():
+            app.run(
+                host="127.0.0.1",
+                port=5000,
+                debug=False,
+                use_reloader=False
+            )
+
+        flask_thread = threading.Thread(
+            target=run_flask,
+            daemon=True
+        )
+
+        flask_thread.start()
+
+        # Serverin işə düşməsi üçün qısa gözləmə
+        import time
+        time.sleep(1.0)
+
+        webview.create_window(
+            "EVOPOS",
+            "http://127.0.0.1:5000",
+            maximized=True,
+            min_size=(1000, 700)
+        )
+
+        webview.start()
+
+    # =====================================================
+    # NORMAL FLASK / RENDER REJİMİ
+    # =====================================================
+
+    else:
+
         app.run(
             host="127.0.0.1",
             port=5000,
             debug=False,
             use_reloader=False
         )
-
-
-    flask_thread = threading.Thread(
-        target=run_flask,
-        daemon=True
-    )
-
-    flask_thread.start()
-
-
-    # Serverin işə düşməsi üçün qısa gözləmə
-    import time
-    time.sleep(1.0)
-
-
-    webview.create_window(
-        "EVOPOS",
-        "http://127.0.0.1:5000",
-        maximized=True,
-        min_size=(1000, 700)
-    )
-
-
-    webview.start()
