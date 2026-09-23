@@ -220,12 +220,14 @@ def init_database():
         """)
 
         # Mövcud PostgreSQL bazası üçün çatışmayan orders sütunları.
-        columns = cursor.execute("""
+        cursor.execute("""
             SELECT column_name AS name
             FROM information_schema.columns
             WHERE table_schema = 'public'
               AND table_name = 'orders'
-        """).fetchall()
+        """)
+
+        columns = cursor.fetchall()
 
         column_names = {
             row["name"] for row in columns
