@@ -46,7 +46,10 @@ app = Flask(
     static_folder=STATIC_DIR
 )
 
-app.secret_key = os.urandom(32)
+app.secret_key = os.environ.get(
+    "SECRET_KEY",
+    "evopos-secret-key-2026"
+)
 # Hər dəfə EVOPOS serveri yenidən başladıqda əvvəlki login sessiyaları
 # avtomatik etibarsız olur və yenidən PIN tələb edilir.
 
