@@ -365,16 +365,21 @@ def init_database():
 
     today = datetime.now().strftime("%Y-%m-%d")
 
-    open_shift = cursor.execute("""
-        SELECT id
+    # Bu gün üçün yalnız BİR açıq növbədən istifadə edirik.
+    # Əvvəlki versiyalarda eyni gün üçün bir neçə "Açıq" növbə
+    # yarana bilirdi. Bu halda masa məşğul görünsə də, Mətbəx/Sifarişlər
+    # həmin sifarişi sonuncu növbənin opened_at vaxtından əvvəl olduğu üçün
+    # göstərmirdi. Ona görə bu günün ən erkən açıq növbəsini əsas növbə kimi
+    # saxlayırıq və digər açıq növbələri bağlayırıq.
+    open_shifts = cursor.execute("""
+        SELECT id, opened_at
         FROM daily_shifts
         WHERE work_date = ?
         AND status = 'Açıq'
-        ORDER BY id DESC
-        LIMIT 1
-    """, (today,)).fetchone()
+        ORDER BY id ASC
+    """, (today,)).fetchall()
 
-    if not open_shift:
+    if not open_shifts:
         cursor.execute("""
             INSERT INTO daily_shifts
             (work_date, opened_at, status)
@@ -384,6 +389,25 @@ def init_database():
             datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "Açıq"
         ))
+    elif len(open_shifts) > 1:
+        # Ən erkən açıq növbə saxlanılır. Digər duplicate növbələr bağlanır.
+        primary_shift_id = open_shifts[0]["id"]
+        duplicate_ids = [
+            row["id"]
+            for row in open_shifts[1:]
+        ]
+
+        for duplicate_id in duplicate_ids:
+            cursor.execute("""
+                UPDATE daily_shifts
+                SET
+                    status = 'Bağlı',
+                    closed_at = COALESCE(closed_at, ?)
+                WHERE id = ?
+            """, (
+                datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                duplicate_id
+            ))
 
     # =====================================================
     # DEFAULT MƏHSULLAR
@@ -2234,13 +2258,19 @@ def update_kitchen_status(order_id):
 def get_open_shift(connection):
     cursor = connection.cursor()
 
+    # Yalnız BU GÜNÜN açıq növbəsini götürürük.
+    # Əvvəlki versiyada tarix filtri olmadığı üçün köhnə açıq növbə
+    # seçilə və cari günün sifarişləri düzgün bölmələrdə görünməyə bilərdi.
+    today = datetime.now().strftime("%Y-%m-%d")
+
     return cursor.execute("""
         SELECT *
         FROM daily_shifts
-        WHERE status = 'Açıq'
-        ORDER BY id DESC
+        WHERE work_date = ?
+        AND status = 'Açıq'
+        ORDER BY id ASC
         LIMIT 1
-    """).fetchone()
+    """, (today,)).fetchone()
 
 
 def build_daily_report(connection, opened_at, closed_at=None):
@@ -2650,7 +2680,11 @@ def report_history():
 # DATABASE INIT
 # =========================================================
 
-init_database()
+# Render/local Flask rejimində bazanı başladırıq.
+# EXE rejimində isə proqram yalnız Render ünvanını açan desktop shell
+# kimi işləyəcək və lokal SQLite bazasına toxunmayacaq.
+if not getattr(sys, "frozen", False):
+    init_database()
 
 
 # =========================================================
@@ -2660,33 +2694,16 @@ init_database()
 if __name__ == "__main__":
 
     # =====================================================
-    # WINDOWS EXE ÜÇÜN DAXİLİ EVOPOS PƏNCƏRƏSİ
+    # WINDOWS EXE ÜÇÜN REMOTE EVOPOS
     # =====================================================
 
     if getattr(sys, "frozen", False):
 
-        def run_flask():
-            app.run(
-                host="127.0.0.1",
-                port=5000,
-                debug=False,
-                use_reloader=False
-            )
-
-        flask_thread = threading.Thread(
-            target=run_flask,
-            daemon=True
-        )
-
-        flask_thread.start()
-
-        # Serverin işə düşməsi üçün qısa gözləmə
-        import time
-        time.sleep(1.0)
+        REMOTE_EVOPOS_URL = "https://evopos-system.onrender.com"
 
         webview.create_window(
             "EVOPOS",
-            "http://127.0.0.1:5000",
+            REMOTE_EVOPOS_URL,
             maximized=True,
             min_size=(1000, 700)
         )
