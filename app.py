@@ -2627,14 +2627,30 @@ def close_day():
         shift["id"]
     ))
 
+    # Əvvəlki günün hesabatını bağladıqdan sonra dərhal yeni,
+    # boş növbə açırıq. Beləliklə növbəti sifarişlər əvvəlki
+    # günün növbəsinə düşmür və Sifarişlər/Mətbəx/Hesabat
+    # yeni gündən başlayır.
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    new_work_date = datetime.now().strftime("%Y-%m-%d")
+
+    cursor.execute("""
+        INSERT INTO daily_shifts
+        (work_date, opened_at, status)
+        VALUES (?, ?, 'Açıq')
+    """, (new_work_date, now))
+
+    new_shift_id = cursor.lastrowid
+
     connection.commit()
 
     connection.close()
 
     return jsonify({
         "success": True,
-        "message": "Gün uğurla bağlandı.",
+        "message": "Gün uğurla bağlandı və yeni gün açıldı.",
         "shift_id": shift["id"],
+        "new_shift_id": new_shift_id,
         "report": report
     })
 
