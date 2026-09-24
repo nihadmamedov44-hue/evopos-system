@@ -1,96 +1,579 @@
 <!DOCTYPE html>
 <html lang="az">
+
 <head>
+
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
 <title>EVOPOS - Günlük Hesabat Çeki</title>
+
 <style>
-*{box-sizing:border-box}
-body{margin:0;background:#eee;font-family:Arial,sans-serif;color:#111;padding:25px}
-.receipt{width:100%;max-width:520px;margin:auto;background:#fff;padding:25px}
-.center{text-align:center}.title{font-size:25px;font-weight:bold}.muted{color:#666;font-size:12px}
-.line{border-top:1px dashed #777;margin:14px 0}
-.row{display:flex;justify-content:space-between;gap:10px;margin:7px 0}
-.section-title{font-weight:bold;margin:14px 0 8px}
-table{width:100%;border-collapse:collapse;font-size:12px}
-th,td{text-align:left;padding:6px 3px;border-bottom:1px dotted #bbb}
-th:last-child,td:last-child{text-align:right}
-.total{font-size:19px;font-weight:bold}
-.buttons{max-width:520px;margin:15px auto;display:flex;gap:10px}
-button{flex:1;border:0;padding:12px;border-radius:7px;color:white;font-weight:bold;cursor:pointer}
-.print{background:#1f2937}.home{background:#166534}
-@media print{body{background:#fff;padding:0}.receipt{max-width:100%;padding:10px}.buttons{display:none}}
+
+*{
+    box-sizing:border-box
+}
+
+body{
+    margin:0;
+    background:#eee;
+    font-family:Arial,sans-serif;
+    color:#111;
+    padding:25px
+}
+
+.receipt{
+    width:100%;
+    max-width:520px;
+    margin:auto;
+    background:#fff;
+    padding:25px
+}
+
+.center{
+    text-align:center
+}
+
+.title{
+    font-size:25px;
+    font-weight:bold
+}
+
+.muted{
+    color:#666;
+    font-size:12px
+}
+
+.line{
+    border-top:1px dashed #777;
+    margin:14px 0
+}
+
+.row{
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    margin:7px 0
+}
+
+.section-title{
+    font-weight:bold;
+    margin:14px 0 8px
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:12px
+}
+
+th,
+td{
+    text-align:left;
+    padding:6px 3px;
+    border-bottom:1px dotted #bbb
+}
+
+th:last-child,
+td:last-child{
+    text-align:right
+}
+
+.total{
+    font-size:19px;
+    font-weight:bold
+}
+
+.buttons{
+    max-width:520px;
+    margin:15px auto;
+    display:flex;
+    gap:10px
+}
+
+button{
+    flex:1;
+    border:0;
+    padding:12px;
+    border-radius:7px;
+    color:white;
+    font-weight:bold;
+    cursor:pointer
+}
+
+.print{
+    background:#1f2937
+}
+
+.home{
+    background:#166534
+}
+
+@media print{
+
+    body{
+        background:#fff;
+        padding:0
+    }
+
+    .receipt{
+        max-width:100%;
+        padding:10px
+    }
+
+    .buttons{
+        display:none
+    }
+
+}
+
 </style>
+
 </head>
+
+
 <body>
+
+
 <div class="receipt">
+
+
 <div class="center">
-<div class="title">EVOPOS</div>
-<div>GÜNLÜK HESABAT ÇEKİ</div>
-<div class="muted">{{ report.work_date }}</div>
+
+<div class="title">
+EVOPOS
 </div>
 
-<div class="line"></div>
+<div>
+GÜNLÜK HESABAT ÇEKİ
+</div>
 
-<div class="row"><span>Sistem açıldı</span><strong>{{ report.opened_at }}</strong></div>
-<div class="row"><span>Sistem bağlandı</span><strong>{{ report.closed_at or "—" }}</strong></div>
+<div class="muted">
+{{ report.work_date }}
+</div>
 
-<div class="line"></div>
+</div>
 
-<div class="section-title">MALİYYƏ</div>
-<div class="row"><span>Ümumi dövriyyə</span><strong>{{ "%.2f"|format(report.total_sales) }} ₼</strong></div>
-<div class="row"><span>Nağd</span><strong>{{ "%.2f"|format(report.cash_sales) }} ₼</strong></div>
-<div class="row"><span>Kart</span><strong>{{ "%.2f"|format(report.card_sales) }} ₼</strong></div>
-<div class="row"><span>Sifariş sayı</span><strong>{{ report.total_orders }}</strong></div>
-<div class="row"><span>Orta çek</span><strong>{{ "%.2f"|format(report.average_order) }} ₼</strong></div>
-<div class="row"><span>Ləğv edilmiş sifariş</span><strong>{{ report.cancelled_orders }}</strong></div>
-<div class="row"><span>Ödənilməmiş sifariş</span><strong>{{ report.unpaid_orders }}</strong></div>
 
 <div class="line"></div>
 
-<div class="section-title">SATILAN MƏHSULLAR</div>
+
+<div class="row">
+
+<span>
+Sistem açıldı
+</span>
+
+<strong>
+{{ report.opened_at }}
+</strong>
+
+</div>
+
+
+<div class="row">
+
+<span>
+Sistem bağlandı
+</span>
+
+<strong>
+{{ report.closed_at or "—" }}
+</strong>
+
+</div>
+
+
+<div class="line"></div>
+
+
+<div class="section-title">
+MALİYYƏ
+</div>
+
+
+<div class="row">
+
+<span>
+Ümumi dövriyyə
+</span>
+
+<strong>
+{{ "%.2f"|format(report.total_sales) }} ₼
+</strong>
+
+</div>
+
+
+<div class="row">
+
+<span>
+Nağd
+</span>
+
+<strong>
+{{ "%.2f"|format(report.cash_sales) }} ₼
+</strong>
+
+</div>
+
+
+<div class="row">
+
+<span>
+Kart
+</span>
+
+<strong>
+{{ "%.2f"|format(report.card_sales) }} ₼
+</strong>
+
+</div>
+
+
+<div class="row">
+
+<span>
+Sifariş sayı
+</span>
+
+<strong>
+{{ report.total_orders }}
+</strong>
+
+</div>
+
+
+<div class="row">
+
+<span>
+Orta çek
+</span>
+
+<strong>
+{{ "%.2f"|format(report.average_order) }} ₼
+</strong>
+
+</div>
+
+
+<div class="row">
+
+<span>
+Ləğv edilmiş sifariş
+</span>
+
+<strong>
+{{ report.cancelled_orders }}
+</strong>
+
+</div>
+
+
+<div class="row">
+
+<span>
+Ödənilməmiş sifariş
+</span>
+
+<strong>
+{{ report.unpaid_orders }}
+</strong>
+
+</div>
+
+
+<div class="line"></div>
+
+
+<div class="section-title">
+SATILAN MƏHSULLAR
+</div>
+
+
 <table>
-<thead><tr><th>Məhsul</th><th>Ədəd</th><th>Məbləğ</th></tr></thead>
+
+<thead>
+
+<tr>
+
+<th>
+Məhsul
+</th>
+
+<th>
+Ədəd
+</th>
+
+<th>
+Məbləğ
+</th>
+
+</tr>
+
+</thead>
+
+
 <tbody>
+
+
 {% for item in report.products %}
-<tr><td>{{ item["name"] }}</td><td>{{ item["quantity"] }}</td><td>{{ "%.2f"|format(item["amount"]) }} ₼</td></tr>
+
+<tr>
+
+<td>
+{{ item["name"] }}
+</td>
+
+<td>
+{{ item["quantity"] }}
+</td>
+
+<td>
+{{ "%.2f"|format(item["amount"]) }} ₼
+</td>
+
+</tr>
+
 {% endfor %}
-<tr><th>ÜMUMİ</th><th>{{ report.products|sum(attribute='quantity') }}</th><th>{{ "%.2f"|format(report.products|sum(attribute='amount')) }} ₼</th></tr>
+
+
+<tr>
+
+<th>
+ÜMUMİ
+</th>
+
+<th>
+{{ report.products|sum(attribute='quantity') }}
+</th>
+
+<th>
+{{ "%.2f"|format(report.products|sum(attribute='amount')) }} ₼
+</th>
+
+</tr>
+
+
 </tbody>
+
 </table>
+
 
 <div class="line"></div>
 
-<div class="section-title">OFİSİANTLAR</div>
-<table>
-<thead><tr><th>Ofisiant</th><th>Masa</th><th>Sifariş</th><th>Məhsul</th><th>Dövriyyə</th></tr></thead>
-<tbody>
-{% for waiter in report.waiters %}
-<tr><td>{{ waiter["name"] }}</td><td>{{ waiter["tables"] }}</td><td>{{ waiter["orders"] }}</td><td>{{ waiter["items"] }}</td><td>{{ "%.2f"|format(waiter["sales"]) }} ₼</td></tr>
-{% endfor %}
-</tbody>
-</table>
 
-<div class="line"></div>
-
-<div class="section-title">MASALAR</div>
-<table>
-<thead><tr><th>Masa</th><th>Ofisiant</th><th>Sifariş</th><th>Dövriyyə</th></tr></thead>
-<tbody>
-{% for table in report.tables %}
-<tr><td>{{ table["table"] }}</td><td>{{ table["waiter"] }}</td><td>{{ table["orders"] }}</td><td>{{ "%.2f"|format(table["sales"]) }} ₼</td></tr>
-{% endfor %}
-</tbody>
-</table>
-
-<div class="line"></div>
-<div class="row total"><span>GÜNÜN YEKUNU</span><span>{{ "%.2f"|format(report.total_sales) }} ₼</span></div>
-<div class="center muted" style="margin-top:18px">EVOPOS — Günlük hesabat</div>
+<div class="section-title">
+OFİSİANTLAR
 </div>
+
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>
+Ofisiant
+</th>
+
+<th>
+Masa
+</th>
+
+<th>
+Sifariş
+</th>
+
+<th>
+Məhsul
+</th>
+
+<th>
+Dövriyyə
+</th>
+
+</tr>
+
+</thead>
+
+
+<tbody>
+
+
+{% for waiter in report.waiters %}
+
+<tr>
+
+<td>
+{{ waiter["name"] }}
+</td>
+
+<td>
+{{ waiter["tables"] }}
+</td>
+
+<td>
+{{ waiter["orders"] }}
+</td>
+
+<td>
+{{ waiter["items"] }}
+</td>
+
+<td>
+{{ "%.2f"|format(waiter["sales"]) }} ₼
+</td>
+
+</tr>
+
+{% endfor %}
+
+
+</tbody>
+
+</table>
+
+
+<div class="line"></div>
+
+
+<div class="section-title">
+MASALAR
+</div>
+
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>
+Masa
+</th>
+
+<th>
+Ofisiant
+</th>
+
+<th>
+Sifariş
+</th>
+
+<th>
+Dövriyyə
+</th>
+
+</tr>
+
+</thead>
+
+
+<tbody>
+
+
+{% for table in report.tables %}
+
+<tr>
+
+<td>
+{{ table["table"] }}
+</td>
+
+<td>
+{{ table["waiter"] }}
+</td>
+
+<td>
+{{ table["orders"] }}
+</td>
+
+<td>
+{{ "%.2f"|format(table["sales"]) }} ₼
+</td>
+
+</tr>
+
+{% endfor %}
+
+
+</tbody>
+
+</table>
+
+
+<div class="line"></div>
+
+
+<div class="row total">
+
+<span>
+GÜNÜN YEKUNU
+</span>
+
+<span>
+{{ "%.2f"|format(report.total_sales) }} ₼
+</span>
+
+</div>
+
+
+<div class="center muted"
+     style="margin-top:18px">
+
+EVOPOS — Günlük hesabat
+
+</div>
+
+
+</div>
+
 
 <div class="buttons">
-<button class="print" onclick="window.print()">🖨️ Çap et</button>
-<button class="home" onclick="window.close()">✕ Bağla</button>
+
+<button
+    class="print"
+    onclick="window.print()">
+
+🖨️ Çap et
+
+</button>
+
+
+<button
+    class="home"
+    onclick="goBackToReports()">
+
+✕ Hesabata qayıt
+
+</button>
+
 </div>
+
+
+<script>
+
+function goBackToReports(){
+
+    /*
+     * window.close() istifadə etmirik.
+     *
+     * EXE daxilində bu səhifə eyni pəncərədə açıldığı üçün
+     * birbaşa Hesabat səhifəsinə qayıdırıq.
+     */
+
+    window.location.href =
+        "/reports";
+
+}
+
+</script>
+
+
 </body>
+
 </html>
