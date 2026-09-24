@@ -18,14 +18,43 @@ import shutil
 import sqlite3
 import json
 import atexit
+from pathlib import Path
+
+# =========================================================
+# DATABASE CONNECTION
+# =========================================================
+# Əvvəl Windows DATABASE_URL mühit dəyişənini yoxlayırıq.
+# Əgər EXE Explorer-dən açıldıqda bu dəyişən görünməzsə,
+# EXE-nin yanında olan database_url.txt faylından oxuyuruq.
+# Beləliklə EXE həm CMD-dən, həm də iki dəfə kliklə işləyə bilər.
+
+if getattr(sys, "frozen", False):
+    DATABASE_CONFIG_FILE = os.path.join(
+        os.path.dirname(sys.executable),
+        "database_url.txt"
+    )
+else:
+    DATABASE_CONFIG_FILE = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "database_url.txt"
+    )
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
+
+if not DATABASE_URL and os.path.exists(DATABASE_CONFIG_FILE):
+    try:
+        DATABASE_URL = Path(DATABASE_CONFIG_FILE).read_text(
+            encoding="utf-8"
+        ).strip()
+    except Exception:
+        DATABASE_URL = ""
+
 USE_POSTGRES = bool(DATABASE_URL)
 
 if USE_POSTGRES:
     import psycopg2
     from psycopg2.extras import RealDictCursor
-from datetime import datetime, timedelta
+from datetime import datetime
 
 
 # =========================================================
@@ -46,10 +75,7 @@ app = Flask(
     static_folder=STATIC_DIR
 )
 
-app.secret_key = os.environ.get(
-    "SECRET_KEY",
-    "evopos-secret-key-2026"
-)
+app.secret_key = os.urandom(32)
 # Hər dəfə EVOPOS serveri yenidən başladıqda əvvəlki login sessiyaları
 # avtomatik etibarsız olur və yenidən PIN tələb edilir.
 
@@ -1859,14 +1885,10 @@ def get_orders():
 
         FROM orders
         WHERE created_at >= ?
-          AND created_at < ?
 
         ORDER BY id DESC
         """,
-        (
-            shift["work_date"] + " 00:00:00",
-            (datetime.strptime(shift["work_date"], "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d 00:00:00")
-        )
+        (shift["opened_at"],)
     ).fetchall()
 
 
@@ -2043,14 +2065,10 @@ def kitchen_orders():
         WHERE kitchen_status != 'Tamamlandı'
         AND status != 'Ləğv edildi'
         AND created_at >= ?
-        AND created_at < ?
 
         ORDER BY id ASC
         """,
-        (
-            shift["work_date"] + " 00:00:00",
-            (datetime.strptime(shift["work_date"], "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d 00:00:00")
-        )
+        (shift["opened_at"],)
     ).fetchall()
 
 
@@ -2242,23 +2260,27 @@ def update_kitchen_status(order_id):
 # DAILY REPORT HELPERS
 # =========================================================
 
-# Cari günün açıq növbəsini götürürük; köhnə günün növbəsi cari sifarişləri gizlətməməlidir.
 def get_open_shift(connection):
     cursor = connection.cursor()
-    today = datetime.now().strftime("%Y-%m-%d")
 
     return cursor.execute("""
         SELECT *
         FROM daily_shifts
         WHERE status = 'Açıq'
-          AND work_date = ?
         ORDER BY id DESC
         LIMIT 1
-    """, (today,)).fetchone()
+    """).fetchone()
 
 
-def build_daily_report(connection, opened_at, closed_at=None):
+def build_daily_report(connection, opened_at=None, closed_at=None, work_date=None):
     cursor = connection.cursor()
+
+    # Gündəlik hesabat növbənin açıldığı saatdan yox, həmin iş gününün
+    # 00:00:00 vaxtından hesablanır.
+    if work_date:
+        report_start = f"{work_date} 00:00:00"
+    else:
+        report_start = opened_at
 
     end_time = closed_at or datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -2278,7 +2300,7 @@ def build_daily_report(connection, opened_at, closed_at=None):
         WHERE status = 'Tamamlandı'
         AND created_at >= ?
         AND created_at <= ?
-    """, (opened_at, end_time)).fetchone()
+    """, (report_start, end_time)).fetchone()
 
     cancelled = cursor.execute("""
         SELECT COUNT(*) AS count
@@ -2286,7 +2308,7 @@ def build_daily_report(connection, opened_at, closed_at=None):
         WHERE status = 'Ləğv edildi'
         AND created_at >= ?
         AND created_at <= ?
-    """, (opened_at, end_time)).fetchone()
+    """, (report_start, end_time)).fetchone()
 
     unpaid = cursor.execute("""
         SELECT COUNT(*) AS count
@@ -2295,7 +2317,7 @@ def build_daily_report(connection, opened_at, closed_at=None):
         AND status != 'Ləğv edildi'
         AND created_at >= ?
         AND created_at <= ?
-    """, (opened_at, end_time)).fetchone()
+    """, (report_start, end_time)).fetchone()
 
     products = cursor.execute("""
         SELECT
@@ -2309,7 +2331,7 @@ def build_daily_report(connection, opened_at, closed_at=None):
         AND o.created_at <= ?
         GROUP BY oi.product_name
         ORDER BY quantity DESC, oi.product_name ASC
-    """, (opened_at, end_time)).fetchall()
+    """, (report_start, end_time)).fetchall()
 
     waiters = cursor.execute("""
         SELECT
@@ -2325,7 +2347,7 @@ def build_daily_report(connection, opened_at, closed_at=None):
         AND o.created_at <= ?
         GROUP BY COALESCE(o.waiter_name, 'Naməlum')
         ORDER BY sales DESC, waiter_name ASC
-    """, (opened_at, end_time)).fetchall()
+    """, (report_start, end_time)).fetchall()
 
     tables = cursor.execute("""
         SELECT
@@ -2339,7 +2361,7 @@ def build_daily_report(connection, opened_at, closed_at=None):
         AND o.created_at <= ?
         GROUP BY o.table_number, COALESCE(o.waiter_name, 'Naməlum')
         ORDER BY o.table_number ASC, waiter_name ASC
-    """, (opened_at, end_time)).fetchall()
+    """, (report_start, end_time)).fetchall()
 
     payment_counts = cursor.execute("""
         SELECT
@@ -2349,13 +2371,13 @@ def build_daily_report(connection, opened_at, closed_at=None):
         WHERE status = 'Tamamlandı'
         AND created_at >= ?
         AND created_at <= ?
-    """, (opened_at, end_time)).fetchone()
+    """, (report_start, end_time)).fetchone()
 
     total_sales = float(completed["sales"] or 0)
     order_count = int(completed["order_count"] or 0)
 
     return {
-        "opened_at": opened_at,
+        "opened_at": report_start,
         "closed_at": closed_at,
         "total_sales": total_sales,
         "cash_sales": float(completed["cash_sales"] or 0),
@@ -2429,11 +2451,10 @@ def reports_api():
                 WHERE id = ?
             """, (cursor.lastrowid,)).fetchone()
 
-        report_start = shift["work_date"] + " 00:00:00"
-
         report = build_daily_report(
             connection,
-            report_start
+            shift["opened_at"],
+            work_date=shift["work_date"]
         )
 
         # Ümumi tarixçə üçün köhnə sahələri də saxlayırıq.
@@ -2532,7 +2553,8 @@ def daily_report_page(shift_id):
     report = build_daily_report(
         connection,
         shift["opened_at"],
-        closed_at
+        closed_at,
+        shift["work_date"]
     )
 
     report["shift_id"] = shift["id"]
@@ -2574,17 +2596,24 @@ def close_day():
             "message": "Açıq gün tapılmadı."
         }), 400
 
-    # Gün bağlananda əvvəlki gündən qalan və ya cari gündə açıq qalan
-    # bütün aktiv sifarişləri yeni günə daşımırıq. Onları tarixçədə
-    # qorumaq üçün "Ləğv edildi" kimi bağlayırıq.
-    # Beləliklə yeni gün başlayanda aktiv sifariş və məşğul masa qalmır.
+    closed_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # Hesabatı əvvəlcə hesablayırıq. Beləliklə gün bağlanarkən aktiv
+    # sifarişlər sonradan "Ləğv edildi" olsa belə, bağlanan günün
+    # hesabatı düzgün şəkildə saxlanılır.
+    report = build_daily_report(
+        connection,
+        shift["opened_at"],
+        closed_at,
+        shift["work_date"]
+    )
+
+    # Yeni gün başlayanda aktiv sifariş və məşğul masa qalmasın.
     active_rows = cursor.execute("""
         SELECT id
         FROM orders
         WHERE status NOT IN ('Tamamlandı', 'Ləğv edildi')
     """).fetchall()
-
-    closed_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     if active_rows:
         cursor.execute("""
@@ -2595,11 +2624,7 @@ def close_day():
             WHERE status NOT IN ('Tamamlandı', 'Ləğv edildi')
         """)
 
-    report = build_daily_report(
-        connection,
-        shift["opened_at"],
-        closed_at
-    )
+
 
     cursor.execute("""
         UPDATE daily_shifts
