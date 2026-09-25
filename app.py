@@ -2263,13 +2263,16 @@ def update_kitchen_status(order_id):
 def get_open_shift(connection):
     cursor = connection.cursor()
 
+    today = datetime.now().strftime("%Y-%m-%d")
+
     return cursor.execute("""
         SELECT *
         FROM daily_shifts
         WHERE status = 'Açıq'
+        AND work_date = ?
         ORDER BY id DESC
         LIMIT 1
-    """).fetchone()
+    """, (today,)).fetchone()
 
 
 def build_daily_report(connection, opened_at, closed_at=None):
