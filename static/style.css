@@ -2072,3 +2072,501 @@ body {
     }
 
 }
+
+
+/* =====================================================
+   EVOPOS - MOBİL DİZAYN YENİLƏNMƏSİ
+   Mövcud funksiyalara toxunmur, yalnız responsive görünüşü yaxşılaşdırır.
+   ===================================================== */
+
+html {
+    width: 100%;
+    overflow-x: hidden;
+}
+
+body {
+    width: 100%;
+    overflow-x: hidden;
+}
+
+@media (max-width: 700px) {
+
+    /* ÜMUMİ */
+    .app,
+    .app-container {
+        display: block !important;
+        width: 100% !important;
+        min-height: 100vh;
+        overflow-x: hidden;
+    }
+
+    /* SIDEBAR */
+    .sidebar {
+        position: sticky !important;
+        top: 0 !important;
+        left: 0 !important;
+        z-index: 1000;
+        width: 100% !important;
+        min-width: 100% !important;
+        height: auto !important;
+        min-height: 0 !important;
+        padding: 10px 10px 8px !important;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.12);
+    }
+
+    .logo {
+        font-size: 20px !important;
+        padding: 4px 6px !important;
+        margin: 0 0 8px !important;
+    }
+
+    .sidebar-menu,
+    nav {
+        width: 100%;
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 7px !important;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding-bottom: 3px;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .sidebar-menu::-webkit-scrollbar,
+    nav::-webkit-scrollbar {
+        display: none;
+    }
+
+    .sidebar-button,
+    .menu-button {
+        flex: 0 0 auto;
+        width: auto !important;
+        min-width: max-content;
+        height: 42px !important;
+        padding: 0 12px !important;
+        font-size: 13px !important;
+        white-space: nowrap;
+    }
+
+    .sidebar-user {
+        margin-top: 8px !important;
+        padding-top: 8px !important;
+        margin-bottom: 5px !important;
+    }
+
+    .user-icon {
+        width: 32px !important;
+        height: 32px !important;
+        font-size: 16px !important;
+    }
+
+    .user-name {
+        font-size: 13px !important;
+    }
+
+    .user-role {
+        font-size: 11px !important;
+    }
+
+    .logout-button {
+        height: 38px !important;
+        font-size: 13px !important;
+    }
+
+    /* ƏSAS HİSSƏ */
+    .main-content,
+    .main,
+    .order-page,
+    .kitchen-page,
+    .order-view-container {
+        margin-left: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 12px !important;
+        box-sizing: border-box;
+        overflow-x: hidden;
+    }
+
+    /* HEADER */
+    .header,
+    .order-header,
+    .kitchen-header {
+        margin-bottom: 16px !important;
+        gap: 10px !important;
+    }
+
+    .header h1,
+    .order-header h1,
+    .kitchen-header h1 {
+        font-size: 22px !important;
+    }
+
+    .header p,
+    .order-header p,
+    .kitchen-header p {
+        font-size: 13px;
+    }
+
+    .user {
+        width: 100%;
+        padding: 9px 12px !important;
+        font-size: 13px;
+    }
+
+    /* STATİSTİKA */
+    .statistics {
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+        margin-bottom: 15px !important;
+    }
+
+    .stat-card {
+        padding: 15px !important;
+    }
+
+    .stat-card strong {
+        font-size: 23px !important;
+    }
+
+    /* MASALAR */
+    .tables {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 10px !important;
+    }
+
+    .table-card {
+        padding: 14px 8px !important;
+        min-width: 0;
+    }
+
+    .table-icon {
+        font-size: 28px !important;
+    }
+
+    .table-card h3 {
+        font-size: 16px;
+    }
+
+    .table-card p {
+        font-size: 12px;
+        margin-bottom: 10px;
+    }
+
+    .table-card button {
+        width: 100%;
+        padding: 9px 6px !important;
+        font-size: 12px;
+    }
+
+    /* SİFARİŞ */
+    .order-content {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+
+    .menu-section {
+        padding: 14px !important;
+        border-radius: 10px;
+    }
+
+    .section-title {
+        margin-bottom: 14px;
+    }
+
+    .section-title h2 {
+        font-size: 19px;
+    }
+
+    .categories {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto;
+        gap: 7px !important;
+        padding-bottom: 5px;
+        margin-bottom: 15px !important;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .categories::-webkit-scrollbar {
+        display: none;
+    }
+
+    .category {
+        flex: 0 0 auto;
+        width: auto !important;
+        padding: 9px 12px !important;
+        font-size: 12px;
+        white-space: nowrap;
+    }
+
+    .products {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 9px !important;
+    }
+
+    .product-card {
+        padding: 12px 8px !important;
+        min-width: 0;
+    }
+
+    .product-icon {
+        font-size: 30px !important;
+        margin-bottom: 7px;
+    }
+
+    .product-card h3 {
+        font-size: 14px;
+        line-height: 1.25;
+        word-break: break-word;
+    }
+
+    .product-card p {
+        font-size: 12px;
+        margin-bottom: 9px;
+    }
+
+    .add-button {
+        padding: 9px 5px !important;
+        font-size: 12px;
+    }
+
+    /* SƏBƏT */
+    .order-cart {
+        min-height: 0 !important;
+        border-radius: 10px;
+    }
+
+    .cart-header {
+        padding: 14px !important;
+    }
+
+    .cart-bottom {
+        padding: 14px !important;
+    }
+
+    .total-row {
+        font-size: 16px !important;
+    }
+
+    .total-row strong {
+        font-size: 18px !important;
+    }
+
+    .send-order {
+        padding: 12px !important;
+        font-size: 14px;
+    }
+
+    /* MƏTBƏX */
+    .kitchen-orders {
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+    }
+
+    .kitchen-order-card {
+        padding: 14px !important;
+        border-top-width: 4px;
+    }
+
+    .kitchen-order-header {
+        gap: 8px;
+    }
+
+    .kitchen-order-header h2 {
+        font-size: 17px !important;
+    }
+
+    .kitchen-order-footer {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    .status-button {
+        width: 100% !important;
+        padding: 11px !important;
+    }
+
+    /* SİFARİŞƏ BAXIŞ */
+    .order-info-card {
+        grid-template-columns: 1fr !important;
+        gap: 9px !important;
+    }
+
+    .info-box {
+        padding: 14px !important;
+    }
+
+    .info-box strong {
+        font-size: 18px !important;
+    }
+
+    .order-details-card {
+        padding: 14px !important;
+    }
+
+    .view-order-item {
+        gap: 10px;
+        padding: 13px 0;
+    }
+
+    /* SİFARİŞLƏR */
+    .orders-list {
+        padding: 0 !important;
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+    }
+
+    .order-history-card {
+        padding: 14px !important;
+    }
+
+    .history-header {
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .history-header h3 {
+        font-size: 16px;
+    }
+
+    .history-item {
+        font-size: 13px;
+    }
+
+    /* HESABAT */
+    .report-section {
+        margin: 0 0 12px !important;
+        padding: 14px !important;
+        overflow: hidden;
+    }
+
+    .report-section-header {
+        gap: 10px !important;
+    }
+
+    .report-section-header h2 {
+        font-size: 18px;
+    }
+
+    .report-section-header button {
+        width: 100%;
+    }
+
+    .report-order-row {
+        grid-template-columns: 1fr !important;
+        gap: 8px !important;
+        padding: 13px 0;
+    }
+
+    .report-order-row > strong:last-child {
+        text-align: left !important;
+    }
+
+    /* MENYU */
+    .menu-toolbar {
+        padding: 0 0 10px !important;
+    }
+
+    .add-product-button {
+        width: 100% !important;
+    }
+
+    .menu-categories {
+        padding: 0 0 10px !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+
+    .menu-categories::-webkit-scrollbar {
+        display: none;
+    }
+
+    .menu-category {
+        flex: 0 0 auto;
+        white-space: nowrap;
+    }
+
+    .menu-products {
+        padding: 5px 0 15px !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 10px !important;
+    }
+
+    .menu-product-card {
+        min-width: 0;
+        padding: 13px !important;
+    }
+
+    .menu-product-info h3 {
+        font-size: 14px !important;
+        word-break: break-word;
+    }
+
+    .menu-product-price {
+        font-size: 17px !important;
+    }
+
+    /* MODAL */
+    .modal-overlay {
+        padding: 10px !important;
+        align-items: center;
+    }
+
+    .product-modal {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    /* BUTTON / LINK */
+    .back-button,
+    .kitchen-actions a {
+        display: inline-block;
+        padding: 10px 13px !important;
+        font-size: 13px;
+    }
+}
+
+@media (max-width: 380px) {
+
+    .sidebar {
+        padding-left: 7px !important;
+        padding-right: 7px !important;
+    }
+
+    .sidebar-button,
+    .menu-button {
+        padding: 0 10px !important;
+        font-size: 12px !important;
+    }
+
+    .main-content,
+    .main,
+    .order-page,
+    .kitchen-page,
+    .order-view-container {
+        padding: 10px !important;
+    }
+
+    .tables {
+        gap: 7px !important;
+    }
+
+    .table-card {
+        padding: 11px 5px !important;
+    }
+
+    .products,
+    .menu-products {
+        gap: 7px !important;
+    }
+
+    .product-card,
+    .menu-product-card {
+        padding: 10px 6px !important;
+    }
+}
