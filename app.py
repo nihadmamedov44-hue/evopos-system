@@ -54,7 +54,10 @@ USE_POSTGRES = bool(DATABASE_URL)
 if USE_POSTGRES:
     import psycopg2
     from psycopg2.extras import RealDictCursor
-from datetime import datetime
+from datetime import datetime, timedelta
+
+def baku_now():
+    return datetime.utcnow() + timedelta(hours=4)
 
 
 # =========================================================
@@ -392,7 +395,7 @@ def init_database():
     # AÇIQ NÖVBƏ
     # =====================================================
 
-    today = datetime.now().strftime("%Y-%m-%d")
+    today = baku_now().strftime("%Y-%m-%d")
 
     open_shift = cursor.execute("""
         SELECT id
@@ -410,7 +413,7 @@ def init_database():
             VALUES (?, ?, ?)
         """, (
             today,
-            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            baku_now().strftime("%Y-%m-%d %H:%M:%S"),
             "Açıq"
         ))
 
@@ -1147,7 +1150,7 @@ def create_order():
         }), 400
 
 
-    created_at = datetime.now().strftime(
+    created_at = baku_now().strftime(
         "%Y-%m-%d %H:%M:%S"
     )
 
@@ -1447,9 +1450,7 @@ def update_order(order_id):
 
     if order["status"] == "Tamamlandı":
 
-        created_at = datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S"
-        )
+        created_at = baku_now().strftime("%Y-%m-%d %H:%M:%S")
 
         cursor.execute(
             """
@@ -1774,7 +1775,7 @@ def payment_order(order_id):
     )
 
 
-    paid_at = datetime.now().strftime(
+    paid_at = baku_now().strftime(
         "%Y-%m-%d %H:%M:%S"
     )
 
@@ -1852,8 +1853,8 @@ def get_orders():
     shift = get_open_shift(connection)
 
     if not shift:
-        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        work_date = datetime.now().strftime("%Y-%m-%d")
+        now = baku_now().strftime("%Y-%m-%d %H:%M:%S")
+        work_date = baku_now().strftime("%Y-%m-%d")
 
         cursor.execute("""
             INSERT INTO daily_shifts
@@ -2039,8 +2040,8 @@ def kitchen_orders():
     shift = get_open_shift(connection)
 
     if not shift:
-        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        work_date = datetime.now().strftime("%Y-%m-%d")
+        now = baku_now().strftime("%Y-%m-%d %H:%M:%S")
+        work_date = baku_now().strftime("%Y-%m-%d")
 
         cursor.execute("""
             INSERT INTO daily_shifts
@@ -2263,7 +2264,7 @@ def update_kitchen_status(order_id):
 def get_open_shift(connection):
     cursor = connection.cursor()
 
-    today = datetime.now().strftime("%Y-%m-%d")
+    today = baku_now().strftime("%Y-%m-%d")
 
     return cursor.execute("""
         SELECT *
@@ -2278,7 +2279,7 @@ def get_open_shift(connection):
 def build_daily_report(connection, opened_at, closed_at=None):
     cursor = connection.cursor()
 
-    end_time = closed_at or datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    end_time = closed_at or baku_now().strftime("%Y-%m-%d %H:%M:%S")
 
     completed = cursor.execute("""
         SELECT
@@ -2430,8 +2431,8 @@ def reports_api():
             # Gün bağlanıbsa yeni istifadə sessiyası üçün
             # yeni növbə açılır.
             cursor = connection.cursor()
-            now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            work_date = datetime.now().strftime("%Y-%m-%d")
+            now = baku_now().strftime("%Y-%m-%d %H:%M:%S")
+            work_date = baku_now().strftime("%Y-%m-%d")
 
             cursor.execute("""
                 INSERT INTO daily_shifts
@@ -2543,7 +2544,7 @@ def daily_report_page(shift_id):
         connection.close()
         return "Günlük hesabat tapılmadı.", 404
 
-    closed_at = shift["closed_at"] or datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    closed_at = shift["closed_at"] or baku_now().strftime("%Y-%m-%d %H:%M:%S")
 
     report = build_daily_report(
         connection,
@@ -2600,7 +2601,7 @@ def close_day():
         WHERE status NOT IN ('Tamamlandı', 'Ləğv edildi')
     """).fetchall()
 
-    closed_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    closed_at = baku_now().strftime("%Y-%m-%d %H:%M:%S")
 
     if active_rows:
         cursor.execute("""
@@ -2634,8 +2635,8 @@ def close_day():
     # boş növbə açırıq. Beləliklə növbəti sifarişlər əvvəlki
     # günün növbəsinə düşmür və Sifarişlər/Mətbəx/Hesabat
     # yeni gündən başlayır.
-    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    new_work_date = datetime.now().strftime("%Y-%m-%d")
+    now = baku_now().strftime("%Y-%m-%d %H:%M:%S")
+    new_work_date = baku_now().strftime("%Y-%m-%d")
 
     cursor.execute("""
         INSERT INTO daily_shifts
